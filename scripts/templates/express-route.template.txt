@@ -1,0 +1,12 @@
+app.{{expressMethod}}('/api/{{methodName}}', async (req: Request, res: Response) => {
+  try {
+    const args = {{argsExpression}}
+
+    {{missingParamsBlock}}
+
+    const result = await Promise.resolve({{methodCall}})
+    res.json({ result })
+  } catch (error) {
+    res.status(500).json({ error: error instanceof Error ? error.message : 'Unknown error' })
+  }
+})

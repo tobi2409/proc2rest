@@ -1,0 +1,17 @@
+{
+  "name": "proc2rest",
+  "version": "1.0.0",
+  "description": "",
+  "license": "ISC",
+  "author": "",
+  "type": "module",
+  "scripts": {
+    "generate-server": "node generate-server.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+  },
+  "devDependencies": {
+    "ts-morph": "^25.0.0"
+  }
+}
