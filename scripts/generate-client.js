@@ -24,8 +24,10 @@ function createClientMethod(routeStub) {
 }
 
 export function createApiClientFile(routeStubs = getRouteStubs()) {
-    const destDir = path.resolve('../generated')
+    const destDir = path.resolve('../generated/client')
     const destFilePath = path.join(destDir, 'index-api-clients.js')
+    const sourceIndexHtmlPath = path.resolve('../index.html')
+    const copiedIndexHtmlPath = path.join(destDir, 'index.html')
 
     if (!fs.existsSync(destDir)) {
         fs.mkdirSync(destDir, { recursive: true })
@@ -38,8 +40,15 @@ export function createApiClientFile(routeStubs = getRouteStubs()) {
     const fileContent = clientFileTemplate.replaceAll('{{methodsBlock}}', methodsBlock)
     fs.writeFileSync(destFilePath, fileContent, 'utf8')
 
+    if (!fs.existsSync(sourceIndexHtmlPath)) {
+        throw new Error('Could not find index.html')
+    }
+
+    fs.copyFileSync(sourceIndexHtmlPath, copiedIndexHtmlPath)
+
     return {
         clientFile: destFilePath,
+        copiedIndexHtmlFile: copiedIndexHtmlPath,
         routeCount: routeStubs.length
     }
 }

@@ -14,7 +14,7 @@ const generatedTsConfigTemplate = fs.readFileSync(generatedTsConfigTemplatePath,
 const routeStubs = getRouteStubs()
 
 function createExpressRoutesFile() {
-    const destDir = path.resolve('../generated')
+    const destDir = path.resolve('../generated/server')
     const destFilePath = path.join(destDir, 'express-routes.generated.ts')
     const copiedSourcePath = path.join(destDir, path.basename(sourceFilePath))
     const runnerFilePath = path.join(destDir, 'run-generated.ts')
