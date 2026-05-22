@@ -7,6 +7,8 @@
   "type": "module",
   "scripts": {
     "generate-server": "node generate-server.js",
+    "generate-client": "node generate-client.js",
+    "generate": "node generate-server.js && node generate-client.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
