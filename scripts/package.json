@@ -8,7 +8,7 @@
   "scripts": {
     "generate-server": "node generate-server.js",
     "generate-client": "node generate-client.js",
-    "generate": "node generate-server.js && node generate-client.js",
+    "generate": "node generate-server.js --appPath=${npm_config_apppath:-../} && node generate-client.js --appPath=${npm_config_apppath:-../}",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {

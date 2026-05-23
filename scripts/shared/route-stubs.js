@@ -3,48 +3,53 @@ import * as fs from 'fs'
 import { Project } from 'ts-morph'
 
 import { resolveHttpMethod } from './http-method-resolver.js'
+import { getAppRootPath } from './app-path.js'
+import { getGeneratorConfig } from './generator-config.js'
 
 const routeTemplatePath = path.resolve('templates/express-route.template.txt')
 const routeTemplate = fs.readFileSync(routeTemplatePath, 'utf8')
 const missingParamsTemplatePath = path.resolve('templates/missing-params.template.txt')
 const missingParamsTemplate = fs.readFileSync(missingParamsTemplatePath, 'utf8')
 
-export const sourceFilePath = path.resolve('../index-server.ts')
+function getExportedMethods(appRootPath) {
+    const generatorConfig = getGeneratorConfig(appRootPath)
+    const targets = generatorConfig.targets ?? ['index']
 
-function getProject() {
-    const tsConfigPath = path.resolve('tsconfig.json')
+    const exportedMethodsByKey = {}
 
-    return fs.existsSync(tsConfigPath)
-        ? new Project({ tsConfigFilePath: tsConfigPath })
-        : new Project()
-}
+    for (const key of targets) {
+        const serverFileName = `${key}-server.ts`
+        const sourceFilePath = path.join(appRootPath, serverFileName)
+        const tsConfigPath = path.join(appRootPath, 'tsconfig.json')
+        const project = fs.existsSync(tsConfigPath)
+            ? new Project({ tsConfigFilePath: tsConfigPath })
+            : new Project()
 
-function getSourceFile() {
-    const project = getProject()
-    project.addSourceFileAtPathIfExists(sourceFilePath)
+        project.addSourceFileAtPathIfExists(sourceFilePath)
 
-    const source = project.getSourceFile(sourceFilePath)
+        const source = project.getSourceFile(sourceFilePath)
 
-    if (!source) {
-        throw new Error('Could not find index-server.ts')
+        if (!source) {
+            throw new Error(`Could not find ${serverFileName}`)
+        }
+
+        const functions = source.getFunctions().filter((fn) => fn.isExported())
+
+        exportedMethodsByKey[key] = {
+            server: serverFileName,
+            methods: functions.map((fn) => ({
+                name: fn.getName() ?? '<anonymous>',
+                isExported: fn.isExported(),
+                params: fn.getParameters().map((param) => ({
+                    name: param.getName(),
+                    type: param.getType().getText(fn)
+                })),
+                returnType: fn.getReturnType().getText(fn)
+            }))
+        }
     }
 
-    return source
-}
-
-function getExportedMethods() {
-    const source = getSourceFile()
-    const functions = source.getFunctions().filter((fn) => fn.isExported())
-
-    return functions.map((fn) => ({
-        name: fn.getName() ?? '<anonymous>',
-        isExported: fn.isExported(),
-        params: fn.getParameters().map((param) => ({
-            name: param.getName(),
-            type: param.getType().getText(fn)
-        })),
-        returnType: fn.getReturnType().getText(fn)
-    }))
+    return exportedMethodsByKey
 }
 
 function createRouteBody(method, httpMethod) {
@@ -65,18 +70,25 @@ function createRouteBody(method, httpMethod) {
         .replaceAll('{{methodCall}}', methodCall)
 }
 
-export function getRouteStubs() {
-    const methods = getExportedMethods()
+export function getRouteStubs(appRootPath = getAppRootPath()) {
+    const methodsByKey = getExportedMethods(appRootPath)
+    const routeStubsByKey = {}
 
-    return methods.map((method) => {
-        const httpMethod = resolveHttpMethod(method.name)
+    for (const [key, entry] of Object.entries(methodsByKey)) {
+        routeStubsByKey[key] = []
 
-        return {
-            methodName: method.name,
-            path: `/api/${method.name}`,
-            httpMethod,
-            params: method.params,
-            routeBody: createRouteBody(method, httpMethod)
+        for (const method of entry.methods) {
+            const httpMethod = resolveHttpMethod(method.name)
+
+            routeStubsByKey[key].push({
+                methodName: method.name,
+                path: `/api/${key}/${method.name}`,
+                httpMethod,
+                params: method.params,
+                routeBody: createRouteBody(method, httpMethod)
+            })
         }
-    })
+    }
+
+    return routeStubsByKey
 }

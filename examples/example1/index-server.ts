@@ -13,8 +13,8 @@ const people: Person[] = [
   }
 ]
 
-export function getPerson() : Person[] {
-    return people
+export function getPerson(name: string) : Person[] {
+    return people.filter(person => person.name === name)
 }
 
 export function addPerson(person: Person): Person {
