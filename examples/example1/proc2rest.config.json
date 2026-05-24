@@ -1,5 +1,15 @@
 {
-  "targets": ["index"],
+  "clients": [{
+    "filename": "index.html",
+    "servers": ["my-server.ts"]
+  }, {
+    "filename": "page-two.html",
+    "servers": ["my-server.ts"]
+  }, {
+    "filename": "page-two.js",
+    "servers": []
+  }],
+  "servers": ["my-server.ts"],
   "apiUrl": "http://localhost:3000",
   "cors": {
     "origin": "*"

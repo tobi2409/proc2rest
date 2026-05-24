@@ -6,6 +6,10 @@ import { getAppRootPath } from './shared/app-path.js'
 
 const routesFileTemplatePath = path.resolve('templates/express-routes-file.template.txt')
 const routesFileTemplate = fs.readFileSync(routesFileTemplatePath, 'utf8')
+const routeTemplatePath = path.resolve('templates/express-route.template.txt')
+const routeTemplate = fs.readFileSync(routeTemplatePath, 'utf8')
+const missingParamsTemplatePath = path.resolve('templates/missing-params.template.txt')
+const missingParamsTemplate = fs.readFileSync(missingParamsTemplatePath, 'utf8')
 const generatedPackageTemplatePath = path.resolve('templates/generated-package.template.json')
 const generatedPackageTemplate = fs.readFileSync(generatedPackageTemplatePath, 'utf8')
 const generatedTsConfigTemplatePath = path.resolve('templates/generated-tsconfig.template.json')
@@ -14,6 +18,24 @@ const generatedTsConfigTemplate = fs.readFileSync(generatedTsConfigTemplatePath,
 const appRootPath = getAppRootPath()
 const routeStubs = getRouteStubs(appRootPath)
 const generatorConfig = getGeneratorConfig(appRootPath)
+
+function createRouteBody(routeStub) {
+    const paramNames = routeStub.params.map((param) => param.name)
+    const methodCall = `${routeStub.methodName}(${paramNames.map((name) => `args.${name}`).join(', ')})`
+    const expressMethod = routeStub.httpMethod.toLowerCase()
+    const argsExpression = routeStub.httpMethod === 'GET' ? 'req.query ?? {}' : 'req.body ?? {}'
+
+    const missingParamsBlock = paramNames.length > 0
+        ? missingParamsTemplate.replaceAll('{{paramList}}', paramNames.map((name) => `'${name}'`).join(', '))
+        : ''
+
+    return routeTemplate
+        .replaceAll('{{expressMethod}}', expressMethod)
+        .replaceAll('{{methodName}}', routeStub.methodName)
+        .replaceAll('{{argsExpression}}', argsExpression)
+        .replaceAll('{{missingParamsBlock}}', missingParamsBlock)
+        .replaceAll('{{methodCall}}', methodCall)
+}
 
 function createExpressRoutesFile() {
     const destDir = path.join(appRootPath, 'generated/server')
@@ -56,7 +78,7 @@ function createExpressRoutesFile() {
     }
 
     const importsBlock = importsLines.join('\n')
-    const routesCode = routeStubs.map((stub) => stub.routeBody).join('\n\n')
+    const routesCode = routeStubs.map((stub) => createRouteBody(stub)).join('\n\n')
 
     const fileContent = routesFileTemplate
         .replaceAll('{{corsOptions}}', JSON.stringify(generatorConfig.cors ?? { origin: '*' }))

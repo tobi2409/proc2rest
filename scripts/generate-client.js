@@ -67,16 +67,16 @@ export function createApiClientFile(routeStubs = getRouteStubs(appRootPath)) {
         for (const serverFileName of servers) {
             const apiClientsFileName = `${serverFileName}-client.js`
             const clientFilePath = path.join(destDir, apiClientsFileName)
-            const serverRouteStubs = routeStubs.filter((routeStub) => routeStub.serverFile === serverFileName)
-            const serverMethodsBlock = serverRouteStubs
+            const clientRouteStubs = routeStubs.filter((routeStub) => routeStub.serverFile === serverFileName)
+            const clientMethodsBlock = clientRouteStubs
                 .map((routeStub) => createClientMethod(routeStub))
                 .join('\n\n')
-            const serverFileContent = clientFileTemplate
+            const clientApiFileContent = clientFileTemplate
                 .replaceAll('{{apiBaseUrl}}', JSON.stringify(generatorConfig.apiUrl ?? 'http://localhost:3000'))
-                .replaceAll('{{methodsBlock}}', serverMethodsBlock)
+                .replaceAll('{{methodsBlock}}', clientMethodsBlock)
 
-            fs.writeFileSync(clientFilePath, serverFileContent, 'utf8')
-            scriptTags.push(`    <script type="module" src="./${apiClientsFileName}"></script>`)
+            fs.writeFileSync(clientFilePath, clientApiFileContent, 'utf8')
+            scriptTags.push(`    <script src="./${apiClientsFileName}"></script>`)
             generatedClientFiles.push(clientFilePath)
         }
 
