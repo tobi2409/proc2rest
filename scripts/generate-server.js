@@ -12,7 +12,7 @@ const generatedTsConfigTemplatePath = path.resolve('templates/generated-tsconfig
 const generatedTsConfigTemplate = fs.readFileSync(generatedTsConfigTemplatePath, 'utf8')
 
 const appRootPath = getAppRootPath()
-const routeStubsByKey = getRouteStubs(appRootPath)
+const routeStubs = getRouteStubs(appRootPath)
 const generatorConfig = getGeneratorConfig(appRootPath)
 
 function createExpressRoutesFile() {
@@ -25,12 +25,10 @@ function createExpressRoutesFile() {
         fs.mkdirSync(destDir, { recursive: true })
     }
 
-    const targets = generatorConfig.targets ?? ['index']
+    const serverFiles = generatorConfig.servers ?? []
     const copiedSourceFiles = []
-    const importsLines = []
 
-    for (const key of targets) {
-        const serverFileName = `${key}-server.ts`
+    for (const serverFileName of serverFiles) {
         const sourceFilePath = path.join(appRootPath, serverFileName)
         const copiedSourcePath = path.join(destDir, serverFileName)
 
@@ -40,23 +38,25 @@ function createExpressRoutesFile() {
 
         fs.copyFileSync(sourceFilePath, copiedSourcePath)
         copiedSourceFiles.push(copiedSourcePath)
-
-        const methodNames = [...new Set((routeStubsByKey[key] ?? []).map((stub) => stub.methodName))]
-
-        if (methodNames.length > 0) {
-            importsLines.push(`import { ${methodNames.join(', ')} } from './${serverFileName.replace('.ts', '')}'`)
-        }
     }
 
-    const routesBodies = []
-    for (const [key, stubs] of Object.entries(routeStubsByKey)) {
-        for (const stub of stubs) {
-            routesBodies.push(stub.routeBody)
+    // Group method names by server file for named imports
+    const methodsByServerFile = {}
+    for (const stub of routeStubs) {
+        if (!methodsByServerFile[stub.serverFile]) {
+            methodsByServerFile[stub.serverFile] = []
         }
+        methodsByServerFile[stub.serverFile].push(stub.methodName)
+    }
+
+    const importsLines = []
+    for (const [serverFileName, methodNames] of Object.entries(methodsByServerFile)) {
+        const importPath = serverFileName.replace('.ts', '')
+        importsLines.push(`import { ${[...new Set(methodNames)].join(', ')} } from './${importPath}'`)
     }
 
     const importsBlock = importsLines.join('\n')
-    const routesCode = routesBodies.join('\n\n')
+    const routesCode = routeStubs.map((stub) => stub.routeBody).join('\n\n')
 
     const fileContent = routesFileTemplate
         .replaceAll('{{corsOptions}}', JSON.stringify(generatorConfig.cors ?? { origin: '*' }))
@@ -77,4 +77,4 @@ function createExpressRoutesFile() {
 
 createExpressRoutesFile()
 
-console.log(JSON.stringify(routeStubsByKey, null, 2))
+console.log(JSON.stringify(routeStubs, null, 2))

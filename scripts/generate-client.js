@@ -27,15 +27,14 @@ function createClientMethod(routeStub) {
         .replaceAll('{{paramsObject}}', paramsObject)
 }
 
-export function createApiClientFile(routeStubsByKey = getRouteStubs(appRootPath)) {
+export function createApiClientFile(routeStubs = getRouteStubs(appRootPath)) {
     const destDir = path.join(appRootPath, 'generated/client')
 
     if (!fs.existsSync(destDir)) {
         fs.mkdirSync(destDir, { recursive: true })
     }
 
-    const allRouteStubs = Object.values(routeStubsByKey).flatMap((stubs) => stubs)
-    const methodsBlock = allRouteStubs
+    const methodsBlock = routeStubs
         .map((routeStub) => createClientMethod(routeStub))
         .join('\n\n')
 
@@ -43,34 +42,56 @@ export function createApiClientFile(routeStubsByKey = getRouteStubs(appRootPath)
         .replaceAll('{{apiBaseUrl}}', JSON.stringify(generatorConfig.apiUrl ?? 'http://localhost:3000'))
         .replaceAll('{{methodsBlock}}', methodsBlock)
 
-    const targets = generatorConfig.targets ?? ['index']
+    const clientFiles = generatorConfig.clients ?? []
     const generatedClients = []
 
-    for (const key of targets) {
-        const clientFileName = `${key}.html`
-        const clientFilePath = path.join(destDir, `${key}-api-clients.js`)
+    for (const clientFile of clientFiles) {
+        const clientFileName = clientFile.fileName ?? clientFile.filename
+        const servers = clientFile.servers ?? []
+
+        if (typeof clientFileName !== 'string' || clientFileName.length === 0) {
+            throw new Error('Each client entry must provide fileName (or filename)')
+        }
+
         const sourceClientPath = path.join(appRootPath, clientFileName)
-        const copiedClientPath = path.join(destDir, `${key}-${path.basename(clientFileName)}`)
+        const copiedClientPath = path.join(destDir, path.basename(clientFileName))
 
         if (!fs.existsSync(sourceClientPath)) {
             throw new Error(`Could not find ${clientFileName}`)
         }
 
-        fs.writeFileSync(clientFilePath, fileContent, 'utf8')
-
         const sourceClientContent = fs.readFileSync(sourceClientPath, 'utf8')
-        const scriptTag = `  <script type="module" src="./${path.basename(clientFilePath)}"></script>`
-        const copiedClientContent = sourceClientContent.includes('</head>')
-            ? sourceClientContent.replace('</head>', `${scriptTag}\n</head>`)
-            : `${sourceClientContent}\n${scriptTag}\n`
+        const scriptTags = []
+        const generatedClientFiles = []
+
+        for (const serverFileName of servers) {
+            const apiClientsFileName = `${serverFileName}-client.js`
+            const clientFilePath = path.join(destDir, apiClientsFileName)
+            const serverRouteStubs = routeStubs.filter((routeStub) => routeStub.serverFile === serverFileName)
+            const serverMethodsBlock = serverRouteStubs
+                .map((routeStub) => createClientMethod(routeStub))
+                .join('\n\n')
+            const serverFileContent = clientFileTemplate
+                .replaceAll('{{apiBaseUrl}}', JSON.stringify(generatorConfig.apiUrl ?? 'http://localhost:3000'))
+                .replaceAll('{{methodsBlock}}', serverMethodsBlock)
+
+            fs.writeFileSync(clientFilePath, serverFileContent, 'utf8')
+            scriptTags.push(`    <script type="module" src="./${apiClientsFileName}"></script>`)
+            generatedClientFiles.push(clientFilePath)
+        }
+
+        const copiedClientContent = scriptTags.length > 0
+            ? sourceClientContent.includes('</head>')
+                ? sourceClientContent.replace('</head>', `${scriptTags.join('\n')}\n</head>`)
+                : `${sourceClientContent}\n${scriptTags.join('\n')}\n`
+            : sourceClientContent
 
         fs.writeFileSync(copiedClientPath, copiedClientContent, 'utf8')
 
         generatedClients.push({
-            key,
-            clientFile: clientFilePath,
+            clientFiles: generatedClientFiles,
             copiedClientFile: copiedClientPath,
-            routeCount: allRouteStubs.length
+            routeCount: routeStubs.length
         })
     }
 

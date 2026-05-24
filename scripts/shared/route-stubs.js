@@ -13,12 +13,10 @@ const missingParamsTemplate = fs.readFileSync(missingParamsTemplatePath, 'utf8')
 
 function getExportedMethods(appRootPath) {
     const generatorConfig = getGeneratorConfig(appRootPath)
-    const targets = generatorConfig.targets ?? ['index']
+    const serverFiles = generatorConfig.servers ?? []
+    const methods = []
 
-    const exportedMethodsByKey = {}
-
-    for (const key of targets) {
-        const serverFileName = `${key}-server.ts`
+    for (const serverFileName of serverFiles) {
         const sourceFilePath = path.join(appRootPath, serverFileName)
         const tsConfigPath = path.join(appRootPath, 'tsconfig.json')
         const project = fs.existsSync(tsConfigPath)
@@ -35,21 +33,21 @@ function getExportedMethods(appRootPath) {
 
         const functions = source.getFunctions().filter((fn) => fn.isExported())
 
-        exportedMethodsByKey[key] = {
-            server: serverFileName,
-            methods: functions.map((fn) => ({
+        for (const fn of functions) {
+            methods.push({
                 name: fn.getName() ?? '<anonymous>',
+                serverFile: serverFileName,
                 isExported: fn.isExported(),
                 params: fn.getParameters().map((param) => ({
                     name: param.getName(),
                     type: param.getType().getText(fn)
                 })),
                 returnType: fn.getReturnType().getText(fn)
-            }))
+            })
         }
     }
 
-    return exportedMethodsByKey
+    return methods
 }
 
 function createRouteBody(method, httpMethod) {
@@ -71,24 +69,21 @@ function createRouteBody(method, httpMethod) {
 }
 
 export function getRouteStubs(appRootPath = getAppRootPath()) {
-    const methodsByKey = getExportedMethods(appRootPath)
-    const routeStubsByKey = {}
+    const methods = getExportedMethods(appRootPath)
+    const routeStubs = []
 
-    for (const [key, entry] of Object.entries(methodsByKey)) {
-        routeStubsByKey[key] = []
+    for (const method of methods) {
+        const httpMethod = resolveHttpMethod(method.name)
 
-        for (const method of entry.methods) {
-            const httpMethod = resolveHttpMethod(method.name)
-
-            routeStubsByKey[key].push({
-                methodName: method.name,
-                path: `/api/${key}/${method.name}`,
-                httpMethod,
-                params: method.params,
-                routeBody: createRouteBody(method, httpMethod)
-            })
-        }
+        routeStubs.push({
+            methodName: method.name,
+            serverFile: method.serverFile,
+            path: `/api/${method.name}`,
+            httpMethod,
+            params: method.params,
+            routeBody: createRouteBody(method, httpMethod)
+        })
     }
 
-    return routeStubsByKey
+    return routeStubs
 }
