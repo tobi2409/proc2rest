@@ -1,17 +1,29 @@
 {
   "clients": [{
     "filename": "index.html",
+    "servers": []
+  }, {
+    "filename": "index.js",
     "servers": ["my-server.ts"]
   }, {
     "filename": "page-two.html",
-    "servers": ["my-server.ts"]
+    "servers": []
   }, {
     "filename": "page-two.js",
-    "servers": []
+    "servers": ["my-server.ts"]
   }],
   "servers": ["my-server.ts"],
   "apiUrl": "http://localhost:3000",
   "cors": {
     "origin": "*"
-  }
+  },
+  "binaryTypes": [
+    "ArrayBuffer",
+    "Uint8Array",
+    "Uint8Array<ArrayBufferLike>",
+    "Buffer",
+    "Blob",
+    "ImageData",
+    "File"
+  ]
 }

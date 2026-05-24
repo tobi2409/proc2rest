@@ -23,7 +23,16 @@ function createRouteBody(routeStub) {
     const paramNames = routeStub.params.map((param) => param.name)
     const methodCall = `${routeStub.methodName}(${paramNames.map((name) => `args.${name}`).join(', ')})`
     const expressMethod = routeStub.httpMethod.toLowerCase()
-    const argsExpression = routeStub.httpMethod === 'GET' ? 'req.query ?? {}' : 'req.body ?? {}'
+    const argsExpression = routeStub.httpMethod === 'GET'
+        ? 'req.query ?? {}'
+        : routeStub.hasBinaryParams
+            ? 'decode(req.body) as Record<string, unknown>'
+            : 'req.body ?? {}'
+    const routeMiddleware = routeStub.httpMethod === 'GET'
+        ? '(req, _res, next) => next()'
+        : routeStub.hasBinaryParams
+            ? `express.raw({ type: 'application/msgpack' })`
+            : 'express.json()'
 
     const missingParamsBlock = paramNames.length > 0
         ? missingParamsTemplate.replaceAll('{{paramList}}', paramNames.map((name) => `'${name}'`).join(', '))
@@ -35,6 +44,7 @@ function createRouteBody(routeStub) {
         .replaceAll('{{argsExpression}}', argsExpression)
         .replaceAll('{{missingParamsBlock}}', missingParamsBlock)
         .replaceAll('{{methodCall}}', methodCall)
+        .replaceAll('{{routeMiddleware}}', routeMiddleware)
 }
 
 function createExpressRoutesFile() {

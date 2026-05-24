@@ -18,6 +18,9 @@ function createClientMethod(routeStub) {
     const paramsObject = paramNames.length > 0
         ? `{ ${paramNames.join(', ')} }`
         : '{}'
+    const contentType = routeStub.hasBinaryParams
+        ? 'application/msgpack'
+        : 'application/json'
 
     return clientMethodTemplate
         .replaceAll('{{methodName}}', routeStub.methodName)
@@ -25,6 +28,11 @@ function createClientMethod(routeStub) {
         .replaceAll('{{path}}', routeStub.path)
         .replaceAll('{{httpMethod}}', routeStub.httpMethod)
         .replaceAll('{{paramsObject}}', paramsObject)
+        .replaceAll('{{contentType}}', contentType)
+}
+
+function toImportIdentifier(fileName) {
+    return path.basename(fileName).replace(/[^a-zA-Z0-9]/g, '_')
 }
 
 export function createApiClientFile(routeStubs = getRouteStubs(appRootPath)) {
@@ -60,30 +68,39 @@ export function createApiClientFile(routeStubs = getRouteStubs(appRootPath)) {
             throw new Error(`Could not find ${clientFileName}`)
         }
 
+        if (servers.length > 0 && path.extname(clientFileName).toLowerCase() !== '.js') {
+            throw new Error(`Client file ${clientFileName} must be a .js file when servers are configured`)
+        }
+
         const sourceClientContent = fs.readFileSync(sourceClientPath, 'utf8')
-        const scriptTags = []
+        const importApiLine = []
         const generatedClientFiles = []
 
         for (const serverFileName of servers) {
             const apiClientsFileName = `${serverFileName}-client.js`
             const clientFilePath = path.join(destDir, apiClientsFileName)
             const clientRouteStubs = routeStubs.filter((routeStub) => routeStub.serverFile === serverFileName)
+            const methodNames = [...new Set(clientRouteStubs.map((routeStub) => routeStub.methodName))]
             const clientMethodsBlock = clientRouteStubs
                 .map((routeStub) => createClientMethod(routeStub))
                 .join('\n\n')
             const clientApiFileContent = clientFileTemplate
                 .replaceAll('{{apiBaseUrl}}', JSON.stringify(generatorConfig.apiUrl ?? 'http://localhost:3000'))
                 .replaceAll('{{methodsBlock}}', clientMethodsBlock)
+            const importIdentifier = toImportIdentifier(apiClientsFileName)
 
             fs.writeFileSync(clientFilePath, clientApiFileContent, 'utf8')
-            scriptTags.push(`    <script src="./${apiClientsFileName}"></script>`)
+            importApiLine.push(`import * as ${importIdentifier} from './${apiClientsFileName}'`)
+
+            if (methodNames.length > 0) {
+                importApiLine.push(`const { ${methodNames.join(', ')} } = ${importIdentifier}`)
+            }
+            
             generatedClientFiles.push(clientFilePath)
         }
 
-        const copiedClientContent = scriptTags.length > 0
-            ? sourceClientContent.includes('</head>')
-                ? sourceClientContent.replace('</head>', `${scriptTags.join('\n')}\n</head>`)
-                : `${sourceClientContent}\n${scriptTags.join('\n')}\n`
+        const copiedClientContent = importApiLine.length > 0
+            ? `${importApiLine.join('\n')}\n\n${sourceClientContent}`
             : sourceClientContent
 
         fs.writeFileSync(copiedClientPath, copiedClientContent, 'utf8')
