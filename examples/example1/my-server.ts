@@ -26,6 +26,6 @@ export function add(a: number, b: number): number {
     return a + b
 }
 
-export function countBytes(data: Uint8Array): number {
-  return data.byteLength
+export function pgetBinDataInfo(name: string, data: Uint8Array): string {
+  return `${name}: ${data.byteLength}`
 }

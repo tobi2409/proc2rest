@@ -31,10 +31,6 @@ function createClientMethod(routeStub) {
         .replaceAll('{{contentType}}', contentType)
 }
 
-function toImportIdentifier(fileName) {
-    return path.basename(fileName).replace(/[^a-zA-Z0-9]/g, '_')
-}
-
 export function createApiClientFile(routeStubs = getRouteStubs(appRootPath)) {
     const destDir = path.join(appRootPath, 'generated/client')
 
@@ -87,13 +83,10 @@ export function createApiClientFile(routeStubs = getRouteStubs(appRootPath)) {
             const clientApiFileContent = clientFileTemplate
                 .replaceAll('{{apiBaseUrl}}', JSON.stringify(generatorConfig.apiUrl ?? 'http://localhost:3000'))
                 .replaceAll('{{methodsBlock}}', clientMethodsBlock)
-            const importIdentifier = toImportIdentifier(apiClientsFileName)
 
             fs.writeFileSync(clientFilePath, clientApiFileContent, 'utf8')
-            importApiLine.push(`import * as ${importIdentifier} from './${apiClientsFileName}'`)
-
             if (methodNames.length > 0) {
-                importApiLine.push(`const { ${methodNames.join(', ')} } = ${importIdentifier}`)
+                importApiLine.push(`import { ${methodNames.join(', ')} } from './${apiClientsFileName}'`)
             }
             
             generatedClientFiles.push(clientFilePath)

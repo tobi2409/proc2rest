@@ -1,5 +1,10 @@
 const btn = document.getElementById('btn')
 
 btn.addEventListener('click', async () => {
-    await getPerson('Jane Doe')
+    const newPerson = await addPerson({
+        name: 'New Person',
+        age: 20
+    })
+    
+    alert(`Added person: ${newPerson.name}, age: ${newPerson.age}`)
 })
