@@ -21,6 +21,9 @@ function createClientMethod(routeStub) {
     const contentType = routeStub.hasBinaryParams
         ? 'application/msgpack'
         : 'application/json'
+    const accept = routeStub.returnIsBinary
+        ? 'application/msgpack'
+        : 'application/json'
 
     return clientMethodTemplate
         .replaceAll('{{methodName}}', routeStub.methodName)
@@ -29,6 +32,7 @@ function createClientMethod(routeStub) {
         .replaceAll('{{httpMethod}}', routeStub.httpMethod)
         .replaceAll('{{paramsObject}}', paramsObject)
         .replaceAll('{{contentType}}', contentType)
+        .replaceAll('{{accept}}', accept)
 }
 
 export function createApiClientFile(routeStubs = getRouteStubs(appRootPath)) {
@@ -46,12 +50,12 @@ export function createApiClientFile(routeStubs = getRouteStubs(appRootPath)) {
         .replaceAll('{{apiBaseUrl}}', JSON.stringify(generatorConfig.apiUrl ?? 'http://localhost:3000'))
         .replaceAll('{{methodsBlock}}', methodsBlock)
 
-    const clientFiles = generatorConfig.clients ?? []
+    const clients = generatorConfig.clients ?? []
     const generatedClients = []
 
-    for (const clientFile of clientFiles) {
-        const clientFileName = clientFile.fileName ?? clientFile.filename
-        const servers = clientFile.servers ?? []
+    for (const client of clients) {
+        const clientFileName = client.fileName ?? client.filename
+        const servers = client.servers ?? []
 
         if (typeof clientFileName !== 'string' || clientFileName.length === 0) {
             throw new Error('Each client entry must provide fileName (or filename)')

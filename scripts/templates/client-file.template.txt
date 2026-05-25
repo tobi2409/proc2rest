@@ -12,7 +12,7 @@ async function getMsgPackModule() {
   return msgPackModulePromise
 }
 
-async function request(path, method, params = {}, contentType = 'application/json') {
+async function request(path, method, params = {}, contentType = 'application/json', accept = 'application/json') {
   const isGet = method === 'GET'
   const isMsgPack = contentType === MSGPACK_CONTENT_TYPE
 
@@ -25,7 +25,12 @@ async function request(path, method, params = {}, contentType = 'application/jso
 
   const response = await fetch(url, {
     method,
-    headers: isGet ? {} : { 'Content-Type': contentType },
+    headers: isGet
+      ? { Accept: accept }
+      : {
+          Accept: accept,
+          'Content-Type': contentType
+        },
     body: isGet
       ? undefined
       : isMsgPack

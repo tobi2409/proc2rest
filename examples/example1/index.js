@@ -16,6 +16,21 @@ btn2.addEventListener('click', async () => {
     alert(`Bin Data Info: ${binDataInfo}`)
 })
 
+const btn4 = document.getElementById('btn4')
+const btn5 = document.getElementById('btn5')
+
+btn4.addEventListener('click', async () => {
+    const data = new Uint8Array([1, 2, 3, 4, 5])
+    const reversed = await reverseBytes(data)
+    alert(`Original: [${data}]\nReversed: [${reversed}]`)
+})
+
+btn5.addEventListener('click', async () => {
+    const data = new Uint8Array([1, 2, 3, 4, 5])
+    const result = await reverseBytesWithName('mydata', data)
+    alert(`Name: ${result.name}\nOriginal: [${data}]\nReversed: [${result.reversed}]`)
+})
+
 const fileInput = document.getElementById('fileInput')
 const btn3 = document.getElementById('btn3')
 

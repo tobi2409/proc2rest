@@ -34,6 +34,10 @@ function createRouteBody(routeStub) {
             ? `express.raw({ type: 'application/msgpack' })`
             : 'express.json()'
 
+    const sendResultExpression = routeStub.returnIsBinary
+        ? `res.set('Content-Type', 'application/msgpack').send(Buffer.from(encode({ result })))`
+        : 'res.json({ result })'
+
     const missingParamsBlock = paramNames.length > 0
         ? missingParamsTemplate.replaceAll('{{paramList}}', paramNames.map((name) => `'${name}'`).join(', '))
         : ''
@@ -45,6 +49,7 @@ function createRouteBody(routeStub) {
         .replaceAll('{{missingParamsBlock}}', missingParamsBlock)
         .replaceAll('{{methodCall}}', methodCall)
         .replaceAll('{{routeMiddleware}}', routeMiddleware)
+        .replaceAll('{{sendResultExpression}}', sendResultExpression)
 }
 
 function createExpressRoutesFile() {

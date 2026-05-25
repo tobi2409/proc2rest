@@ -5,7 +5,7 @@ app.{{expressMethod}}('/api/{{methodName}}', {{routeMiddleware}}, async (req: Re
     {{missingParamsBlock}}
 
     const result = await Promise.resolve({{methodCall}})
-    res.json({ result })
+    {{sendResultExpression}}
   } catch (error) {
     res.status(500).json({ error: error instanceof Error ? error.message : 'Unknown error' })
   }
