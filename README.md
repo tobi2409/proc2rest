@@ -263,14 +263,10 @@ Or inspect in browser DevTools → Network → binary request body.
 - **Vanilla Express route support**: Allow custom routes and arbitrary code (imports, middleware, custom handlers) to be included 1:1 in generated server
 
 ### Medium Priority
+- **Custom templates for generated code**: Allow customization of generated Express server and client (e.g., DB pool initialization, middleware hooks, custom decorators)
 - Selective function export (ability to exclude specific functions from API)
 - Content negotiation on server (respond based on `Accept` header)
 
 ### Nice to Have
-- Custom templates for generated code (e.g., DB pool initialization, middleware hooks)
 - Class/namespace exports with method grouping
 - Built-in integration tests for JSON + Binary roundtrips
-
-## License
-
-ISC
