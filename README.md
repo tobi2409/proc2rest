@@ -255,10 +255,21 @@ Or inspect in browser DevTools → Network → binary request body.
 
 ## Limitations & TODOs
 
-- No authentication/authorization headers yet
-- No vanilla Express route support (only generated routes)
-- All server functions become REST endpoints (no filtering)
-- Binary responses must be explicitly returned as Uint8Array
+### High Priority
+- **Namespacing for multiple servers**: Prevent method name collisions by grouping exports per server (e.g., `userApi.getUser()`, `orderApi.getUser()`)
+- **Filename patterns in config**: Support glob patterns like `*.server.ts` instead of listing individual files
+- **HTTP method rules in config**: Allow custom function-to-HTTP-method mapping (e.g., `{ "methods": { "fetch": "GET", "store": "POST" } }`)
+- **Authentication hooks**: Flexible auth header generation (Bearer, API-Key, custom)
+- **Vanilla Express route support**: Allow custom routes and arbitrary code (imports, middleware, custom handlers) to be included 1:1 in generated server
+
+### Medium Priority
+- Selective function export (ability to exclude specific functions from API)
+- Content negotiation on server (respond based on `Accept` header)
+
+### Nice to Have
+- Custom templates for generated code (e.g., DB pool initialization, middleware hooks)
+- Class/namespace exports with method grouping
+- Built-in integration tests for JSON + Binary roundtrips
 
 ## License
 
