@@ -1,6 +1,6 @@
 import * as path from 'path'
 import * as fs from 'fs'
-import { Project } from 'ts-morph'
+import { Project, ts } from 'ts-morph'
 
 import { resolveHttpMethod } from './http-method-resolver.js'
 import { getAppRootPath } from './app-path.js'
@@ -8,6 +8,34 @@ import { getGeneratorConfig } from './generator-config.js'
 
 function isBinaryType(typeName, binaryTypes) {
     return binaryTypes.includes(typeName)
+}
+
+function hasRestMarker(fn) {
+    const sourceText = fn.getSourceFile().getFullText()
+    const commentRanges = ts.getLeadingCommentRanges(sourceText, fn.getPos()) ?? []
+    return commentRanges.some((range) => sourceText.slice(range.pos, range.end).includes('@rest'))
+}
+
+function getMiddlewaresFromFunctionComments(fn) {
+    const sourceText = fn.getSourceFile().getFullText()
+    const commentRanges = ts.getLeadingCommentRanges(sourceText, fn.getPos()) ?? []
+    const middlewareNames = []
+
+    for (const range of commentRanges) {
+        const commentText = sourceText.slice(range.pos, range.end)
+        const middlewareMatches = commentText.matchAll(/@middleware\s*\(([^)]*)\)/g)
+
+        for (const match of middlewareMatches) {
+            const middlewareList = (match[1] ?? '')
+                .split(',')
+                .map((middlewareName) => middlewareName.trim().replace(/^['"]|['"]$/g, ''))
+                .filter(Boolean)
+
+            middlewareNames.push(...middlewareList)
+        }
+    }
+
+    return middlewareNames
 }
 
 function getExportedMethods(appRootPath) {
@@ -34,10 +62,12 @@ function getExportedMethods(appRootPath) {
         const functions = source.getFunctions().filter((fn) => fn.isExported())
 
         for (const fn of functions) {
+            const hasRest = hasRestMarker(fn)
             const returnType = fn.getReturnType().getText(fn)
             const params = []
             let hasBinaryParams = false
             let hasJsonParams = false
+            const middlewares = getMiddlewaresFromFunctionComments(fn)
 
             for (const param of fn.getParameters()) {
                 const paramType = param.getType().getText(fn)
@@ -62,12 +92,14 @@ function getExportedMethods(appRootPath) {
                 name: fn.getName() ?? '<anonymous>',
                 serverFile: serverFileName,
                 isExported: fn.isExported(),
+                hasRestMarker: hasRest,
                 params,
                 hasBinaryParams,
                 hasJsonParams,
                 mixedParams,
                 returnType,
-                returnIsBinary: isBinaryType(returnType, binaryTypes)
+                returnIsBinary: isBinaryType(returnType, binaryTypes),
+                middlewares
             })
         }
     }
@@ -75,16 +107,18 @@ function getExportedMethods(appRootPath) {
     return methods
 }
 
-export function getRouteStubs(appRootPath = getAppRootPath()) {
+export function getFunctionStubs(appRootPath = getAppRootPath()) {
     const methods = getExportedMethods(appRootPath)
-    const routeStubs = []
+    const functionStubs = []
 
     for (const method of methods) {
         const httpMethod = resolveHttpMethod(method.name)
 
-        routeStubs.push({
+        functionStubs.push({
             methodName: method.name,
             serverFile: method.serverFile,
+            isExported: method.isExported,
+            hasRestMarker: method.hasRestMarker,
             path: `/api/${method.name}`,
             httpMethod,
             params: method.params,
@@ -92,9 +126,10 @@ export function getRouteStubs(appRootPath = getAppRootPath()) {
             hasJsonParams: method.hasJsonParams,
             mixedParams: method.mixedParams,
             returnType: method.returnType,
-            returnIsBinary: method.returnIsBinary
+            returnIsBinary: method.returnIsBinary,
+            middlewares: method.middlewares
         })
     }
 
-    return routeStubs
+    return functionStubs
 }

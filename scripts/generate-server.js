@@ -1,6 +1,6 @@
 import * as path from 'path'
 import * as fs from 'fs'
-import { getRouteStubs } from './shared/route-stubs.js'
+import { getFunctionStubs } from './shared/function-stubs.js'
 import { getGeneratorConfig } from './shared/generator-config.js'
 import { getAppRootPath } from './shared/app-path.js'
 
@@ -16,7 +16,7 @@ const generatedTsConfigTemplatePath = path.resolve('templates/generated-tsconfig
 const generatedTsConfigTemplate = fs.readFileSync(generatedTsConfigTemplatePath, 'utf8')
 
 const appRootPath = getAppRootPath()
-const routeStubs = getRouteStubs(appRootPath)
+const functionStubs = getFunctionStubs(appRootPath)
 const generatorConfig = getGeneratorConfig(appRootPath)
 
 function createRouteBody(routeStub) {
@@ -28,11 +28,14 @@ function createRouteBody(routeStub) {
         : routeStub.hasBinaryParams
             ? 'decode(req.body) as Record<string, unknown>'
             : 'req.body ?? {}'
-    const routeMiddleware = routeStub.httpMethod === 'GET'
+    const bodyParserMiddleware = routeStub.httpMethod === 'GET'
         ? '(req, _res, next) => next()'
         : routeStub.hasBinaryParams
             ? `express.raw({ type: 'application/msgpack' })`
             : 'express.json()'
+    const middlewareFunctionNames = (routeStub.middlewares ?? []).length > 0
+        ? `, ${(routeStub.middlewares ?? []).join(', ')}`
+        : ''
 
     const sendResultExpression = routeStub.returnIsBinary
         ? `res.set('Content-Type', 'application/msgpack').send(Buffer.from(encode({ result })))`
@@ -48,7 +51,8 @@ function createRouteBody(routeStub) {
         .replaceAll('{{argsExpression}}', argsExpression)
         .replaceAll('{{missingParamsBlock}}', missingParamsBlock)
         .replaceAll('{{methodCall}}', methodCall)
-        .replaceAll('{{routeMiddleware}}', routeMiddleware)
+        .replaceAll('{{bodyParserMiddleware}}', bodyParserMiddleware)
+        .replaceAll('{{middlewareFunctionNames}}', middlewareFunctionNames)
         .replaceAll('{{sendResultExpression}}', sendResultExpression)
 }
 
@@ -77,23 +81,27 @@ function createExpressRoutesFile() {
         copiedSourceFiles.push(copiedSourcePath)
     }
 
-    // Group method names by server file for named imports
-    const methodsByServerFile = {}
-    for (const stub of routeStubs) {
-        if (!methodsByServerFile[stub.serverFile]) {
-            methodsByServerFile[stub.serverFile] = []
+    // Collect all exported names by server file for imports
+    const exportedNamesByServerFile = {}
+    for (const stub of functionStubs) {
+        if (!exportedNamesByServerFile[stub.serverFile]) {
+            exportedNamesByServerFile[stub.serverFile] = new Set()
         }
-        methodsByServerFile[stub.serverFile].push(stub.methodName)
+        exportedNamesByServerFile[stub.serverFile].add(stub.methodName)
     }
 
     const importsLines = []
-    for (const [serverFileName, methodNames] of Object.entries(methodsByServerFile)) {
+    for (const [serverFileName, exportedNames] of Object.entries(exportedNamesByServerFile)) {
         const importPath = serverFileName.replace('.ts', '')
-        importsLines.push(`import { ${[...new Set(methodNames)].join(', ')} } from './${importPath}'`)
+        importsLines.push(`import { ${[...exportedNames].join(', ')} } from './${importPath}'`)
     }
 
     const importsBlock = importsLines.join('\n')
-    const routesCode = routeStubs.map((stub) => createRouteBody(stub)).join('\n\n')
+    // Only generate routes from stubs with hasRestMarker
+    const routesCode = functionStubs
+        .filter((stub) => stub.hasRestMarker)
+        .map((stub) => createRouteBody(stub))
+        .join('\n\n')
 
     const fileContent = routesFileTemplate
         .replaceAll('{{corsOptions}}', JSON.stringify(generatorConfig.cors ?? { origin: '*' }))
@@ -114,4 +122,4 @@ function createExpressRoutesFile() {
 
 createExpressRoutesFile()
 
-console.log(JSON.stringify(routeStubs, null, 2))
+console.log(JSON.stringify(functionStubs, null, 2))

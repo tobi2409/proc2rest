@@ -1,7 +1,7 @@
 import * as fs from 'fs'
 import * as path from 'path'
 
-import { getRouteStubs } from './shared/route-stubs.js'
+import { getFunctionStubs } from './shared/function-stubs.js'
 import { getGeneratorConfig } from './shared/generator-config.js'
 import { getAppRootPath } from './shared/app-path.js'
 
@@ -35,7 +35,7 @@ function createClientMethod(routeStub) {
         .replaceAll('{{accept}}', accept)
 }
 
-export function createApiClientFile(routeStubs = getRouteStubs(appRootPath)) {
+export function createApiClientFile(routeStubs = getFunctionStubs(appRootPath)) {
     const destDir = path.join(appRootPath, 'generated/client')
 
     if (!fs.existsSync(destDir)) {

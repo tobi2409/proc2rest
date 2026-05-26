@@ -1,4 +1,4 @@
-app.{{expressMethod}}('/api/{{methodName}}', {{routeMiddleware}}, async (req: Request, res: Response) => {
+app.{{expressMethod}}('/api/{{methodName}}', [{{bodyParserMiddleware}}{{middlewareFunctionNames}}], async (req: Request, res: Response) => {
   try {
     const args = {{argsExpression}}
 
