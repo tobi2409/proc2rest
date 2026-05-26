@@ -1,5 +1,5 @@
 // Simple auth middleware template (no third-party provider support)
-import { type NextFunction } from 'express'
+import { type Request, type Response, type NextFunction } from 'express'
 
 export function auth(req: Request, res: Response, next: NextFunction) {
   const authorizationHeader = req.headers.authorization

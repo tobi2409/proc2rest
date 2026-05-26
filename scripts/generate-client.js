@@ -5,9 +5,9 @@ import { getFunctionStubs } from './shared/function-stubs.js'
 import { getGeneratorConfig } from './shared/generator-config.js'
 import { getAppRootPath } from './shared/app-path.js'
 
-const clientFileTemplatePath = path.resolve('templates/client-file.template.txt')
+const clientFileTemplatePath = path.resolve('templates/client/client-file.template.txt')
 const clientFileTemplate = fs.readFileSync(clientFileTemplatePath, 'utf8')
-const clientMethodTemplatePath = path.resolve('templates/client-method.template.txt')
+const clientMethodTemplatePath = path.resolve('templates/client/client-method.template.txt')
 const clientMethodTemplate = fs.readFileSync(clientMethodTemplatePath, 'utf8')
 const appRootPath = getAppRootPath()
 const generatorConfig = getGeneratorConfig(appRootPath)

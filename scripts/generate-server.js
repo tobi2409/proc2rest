@@ -4,15 +4,15 @@ import { getFunctionStubs } from './shared/function-stubs.js'
 import { getGeneratorConfig } from './shared/generator-config.js'
 import { getAppRootPath } from './shared/app-path.js'
 
-const routesFileTemplatePath = path.resolve('templates/express-routes-file.template.txt')
+const routesFileTemplatePath = path.resolve('templates/server/express-routes-file.template.txt')
 const routesFileTemplate = fs.readFileSync(routesFileTemplatePath, 'utf8')
-const routeTemplatePath = path.resolve('templates/express-route.template.txt')
+const routeTemplatePath = path.resolve('templates/server/express-route.template.txt')
 const routeTemplate = fs.readFileSync(routeTemplatePath, 'utf8')
-const missingParamsTemplatePath = path.resolve('templates/missing-params.template.txt')
+const missingParamsTemplatePath = path.resolve('templates/server/missing-params.template.txt')
 const missingParamsTemplate = fs.readFileSync(missingParamsTemplatePath, 'utf8')
-const generatedPackageTemplatePath = path.resolve('templates/generated-package.template.json')
+const generatedPackageTemplatePath = path.resolve('templates/config/generated-package.template.json')
 const generatedPackageTemplate = fs.readFileSync(generatedPackageTemplatePath, 'utf8')
-const generatedTsConfigTemplatePath = path.resolve('templates/generated-tsconfig.template.json')
+const generatedTsConfigTemplatePath = path.resolve('templates/config/generated-tsconfig.template.json')
 const generatedTsConfigTemplate = fs.readFileSync(generatedTsConfigTemplatePath, 'utf8')
 
 const appRootPath = getAppRootPath()
