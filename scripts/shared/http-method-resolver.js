@@ -1,20 +1,24 @@
-export function resolveHttpMethod(methodName) {
-    const lower = methodName.toLowerCase()
+const defaultMethodRules = {
+    GET: '^(get|list|find)',
+    POST: '^(create|add|insert)',
+    PATCH: '^(update|set|patch)',
+    DELETE: '^(delete|remove)'
+}
 
-    if (lower.startsWith('get') || lower.startsWith('list') || lower.startsWith('find')) {
-        return 'GET'
+export function resolveHttpMethod(methodName, methodRules = defaultMethodRules, customFunctions = {}) {
+    const overrideMethod = customFunctions[methodName]
+    if (overrideMethod) {
+        return overrideMethod
     }
 
-    if (lower.startsWith('create') || lower.startsWith('add') || lower.startsWith('insert')) {
-        return 'POST'
-    }
+    for (const [httpMethod, functionNamePattern] of Object.entries(methodRules)) {
+        if (typeof functionNamePattern !== 'string') {
+            continue
+        }
 
-    if (lower.startsWith('update') || lower.startsWith('set') || lower.startsWith('patch')) {
-        return 'PATCH'
-    }
-
-    if (lower.startsWith('delete') || lower.startsWith('remove')) {
-        return 'DELETE'
+        if (new RegExp(functionNamePattern, 'i').test(methodName)) {
+            return httpMethod
+        }
     }
 
     return 'POST'

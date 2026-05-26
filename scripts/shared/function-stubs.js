@@ -6,6 +6,16 @@ import { resolveHttpMethod } from './http-method-resolver.js'
 import { getAppRootPath } from './app-path.js'
 import { getGeneratorConfig } from './generator-config.js'
 
+const generatorConfigCache = new Map()
+
+function getCachedGeneratorConfig(appRootPath) {
+    if (!generatorConfigCache.has(appRootPath)) {
+        generatorConfigCache.set(appRootPath, getGeneratorConfig(appRootPath))
+    }
+
+    return generatorConfigCache.get(appRootPath)
+}
+
 function isBinaryType(typeName, binaryTypes) {
     return binaryTypes.includes(typeName)
 }
@@ -39,7 +49,7 @@ function getMiddlewaresFromFunctionComments(fn) {
 }
 
 function getExportedMethods(appRootPath) {
-    const generatorConfig = getGeneratorConfig(appRootPath)
+    const generatorConfig = getCachedGeneratorConfig(appRootPath)
     const serverFiles = generatorConfig.servers ?? []
     const binaryTypes = generatorConfig.binaryTypes ?? []
     const methods = []
@@ -108,11 +118,14 @@ function getExportedMethods(appRootPath) {
 }
 
 export function getFunctionStubs(appRootPath = getAppRootPath()) {
+    const generatorConfig = getCachedGeneratorConfig(appRootPath)
+    const methodRules = generatorConfig['method-rules'] ?? undefined
+    const customFunctions = generatorConfig['method-rules-custom-functions'] ?? undefined
     const methods = getExportedMethods(appRootPath)
     const functionStubs = []
 
     for (const method of methods) {
-        const httpMethod = resolveHttpMethod(method.name)
+        const httpMethod = resolveHttpMethod(method.name, methodRules, customFunctions)
 
         functionStubs.push({
             methodName: method.name,
