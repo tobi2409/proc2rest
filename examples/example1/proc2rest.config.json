@@ -17,6 +17,15 @@
   "cors": {
     "origin": "*"
   },
+  "method-rules": {
+    "GET": "^(get|list|find)",
+    "POST": "^(create|add|insert)",
+    "PATCH": "^(update|set|patch)",
+    "DELETE": "^(delete|remove)"
+  },
+  "method-rules-custom-functions": {
+    "getBinDataInfo": "POST"
+  },
   "binaryTypes": [
     "ReverseResult",
     "ArrayBuffer",

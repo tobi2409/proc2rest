@@ -41,7 +41,7 @@ export function add(a: number, b: number): number {
 }
 
 // @rest
-export function pgetBinDataInfo(name: string, data: Uint8Array): string {
+export function getBinDataInfo(name: string, data: Uint8Array): string {
     return `${name}: ${data.byteLength}`
 }
 
