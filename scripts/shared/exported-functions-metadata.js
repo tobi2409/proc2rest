@@ -48,11 +48,11 @@ function getMiddlewaresFromFunctionComments(fn) {
     return middlewareNames
 }
 
-function getExportedMethods(appRootPath) {
+function getExportedFunctions(appRootPath) {
     const generatorConfig = getCachedGeneratorConfig(appRootPath)
     const serverFiles = generatorConfig.servers ?? []
     const binaryTypes = generatorConfig.binaryTypes ?? []
-    const methods = []
+    const exportedFunctions = []
 
     for (const serverFileName of serverFiles) {
         const sourceFilePath = path.join(appRootPath, serverFileName)
@@ -98,7 +98,7 @@ function getExportedMethods(appRootPath) {
 
             const mixedParams = hasBinaryParams && hasJsonParams
 
-            methods.push({
+            exportedFunctions.push({
                 name: fn.getName() ?? '<anonymous>',
                 serverFile: serverFileName,
                 isExported: fn.isExported(),
@@ -114,35 +114,35 @@ function getExportedMethods(appRootPath) {
         }
     }
 
-    return methods
+    return exportedFunctions
 }
 
-export function getFunctionStubs(appRootPath = getAppRootPath()) {
+export function getExportedFunctionsMetadata(appRootPath = getAppRootPath()) {
     const generatorConfig = getCachedGeneratorConfig(appRootPath)
     const methodRules = generatorConfig['method-rules'] ?? undefined
     const customFunctions = generatorConfig['method-rules-custom-functions'] ?? undefined
-    const methods = getExportedMethods(appRootPath)
-    const functionStubs = []
+    const exportedFunctions = getExportedFunctions(appRootPath)
+    const exportedFunctionsMetadata = []
 
-    for (const method of methods) {
-        const httpMethod = resolveHttpMethod(method.name, methodRules, customFunctions)
+    for (const func of exportedFunctions) {
+        const httpMethod = resolveHttpMethod(func.name, methodRules, customFunctions)
 
-        functionStubs.push({
-            methodName: method.name,
-            serverFile: method.serverFile,
-            isExported: method.isExported,
-            hasRestMarker: method.hasRestMarker,
-            path: `/api/${method.name}`,
+        exportedFunctionsMetadata.push({
+            functionName: func.name,
+            serverFile: func.serverFile,
+            isExported: func.isExported,
+            hasRestMarker: func.hasRestMarker,
+            path: `/api/${func.name}`,
             httpMethod,
-            params: method.params,
-            hasBinaryParams: method.hasBinaryParams,
-            hasJsonParams: method.hasJsonParams,
-            mixedParams: method.mixedParams,
-            returnType: method.returnType,
-            returnIsBinary: method.returnIsBinary,
-            middlewares: method.middlewares
+            params: func.params,
+            hasBinaryParams: func.hasBinaryParams,
+            hasJsonParams: func.hasJsonParams,
+            mixedParams: func.mixedParams,
+            returnType: func.returnType,
+            returnIsBinary: func.returnIsBinary,
+            middlewares: func.middlewares
         })
     }
 
-    return functionStubs
+    return exportedFunctionsMetadata
 }

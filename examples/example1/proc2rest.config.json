@@ -13,6 +13,7 @@
     "servers": ["my-server.ts"]
   }],
   "servers": ["my-server.ts"],
+  "rawServerFiles": ["my-server-raw.ts"],
   "apiUrl": "http://localhost:3000",
   "cors": {
     "origin": "*"

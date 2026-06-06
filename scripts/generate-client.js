@@ -1,18 +1,18 @@
 import * as fs from 'fs'
 import * as path from 'path'
 
-import { getFunctionStubs } from './shared/function-stubs.js'
+import { getExportedFunctionsMetadata } from './shared/exported-functions-metadata.js'
 import { getGeneratorConfig } from './shared/generator-config.js'
 import { getAppRootPath } from './shared/app-path.js'
 
 const clientFileTemplatePath = path.resolve('templates/client/client-file.template.txt')
 const clientFileTemplate = fs.readFileSync(clientFileTemplatePath, 'utf8')
-const clientMethodTemplatePath = path.resolve('templates/client/client-method.template.txt')
-const clientMethodTemplate = fs.readFileSync(clientMethodTemplatePath, 'utf8')
+const clientFunctionTemplatePath = path.resolve('templates/client/client-function.template.txt')
+const clientFunctionTemplate = fs.readFileSync(clientFunctionTemplatePath, 'utf8')
 const appRootPath = getAppRootPath()
 const generatorConfig = getGeneratorConfig(appRootPath)
 
-function createClientMethod(routeStub) {
+function createClientFunction(routeStub) {
     const paramNames = routeStub.params.map((param) => param.name)
     const signatureParams = paramNames.join(', ')
     const paramsObject = paramNames.length > 0
@@ -25,8 +25,8 @@ function createClientMethod(routeStub) {
         ? 'application/msgpack'
         : 'application/json'
 
-    return clientMethodTemplate
-        .replaceAll('{{methodName}}', routeStub.methodName)
+    return clientFunctionTemplate
+        .replaceAll('{{functionName}}', routeStub.functionName)
         .replaceAll('{{signatureParams}}', signatureParams)
         .replaceAll('{{path}}', routeStub.path)
         .replaceAll('{{httpMethod}}', routeStub.httpMethod)
@@ -35,20 +35,21 @@ function createClientMethod(routeStub) {
         .replaceAll('{{accept}}', accept)
 }
 
-export function createApiClientFile(routeStubs = getFunctionStubs(appRootPath)) {
+export function createApiClientFile(exportedFunctionsMetadata = getExportedFunctionsMetadata(appRootPath)) {
     const destDir = path.join(appRootPath, 'generated/client')
+    const restFunctionStubs = exportedFunctionsMetadata.filter((stub) => stub.hasRestMarker)
 
     if (!fs.existsSync(destDir)) {
         fs.mkdirSync(destDir, { recursive: true })
     }
 
-    const methodsBlock = routeStubs
-        .map((routeStub) => createClientMethod(routeStub))
+    const functionsBlock = restFunctionStubs
+        .map((routeStub) => createClientFunction(routeStub))
         .join('\n\n')
 
     const fileContent = clientFileTemplate
         .replaceAll('{{apiBaseUrl}}', JSON.stringify(generatorConfig.apiUrl ?? 'http://localhost:3000'))
-        .replaceAll('{{methodsBlock}}', methodsBlock)
+        .replaceAll('{{functionsBlock}}', functionsBlock)
 
     const clients = generatorConfig.clients ?? []
     const generatedClients = []
@@ -79,18 +80,18 @@ export function createApiClientFile(routeStubs = getFunctionStubs(appRootPath)) 
         for (const serverFileName of servers) {
             const apiClientsFileName = `${serverFileName}-client.js`
             const clientFilePath = path.join(destDir, apiClientsFileName)
-            const clientRouteStubs = routeStubs.filter((routeStub) => routeStub.serverFile === serverFileName)
-            const methodNames = [...new Set(clientRouteStubs.map((routeStub) => routeStub.methodName))]
-            const clientMethodsBlock = clientRouteStubs
-                .map((routeStub) => createClientMethod(routeStub))
+            const clientRouteStubs = restFunctionStubs.filter((routeStub) => routeStub.serverFile === serverFileName)
+            const functionNames = [...new Set(clientRouteStubs.map((routeStub) => routeStub.functionName))]
+            const clientFunctionsBlock = clientRouteStubs
+                .map((routeStub) => createClientFunction(routeStub))
                 .join('\n\n')
             const clientApiFileContent = clientFileTemplate
                 .replaceAll('{{apiBaseUrl}}', JSON.stringify(generatorConfig.apiUrl ?? 'http://localhost:3000'))
-                .replaceAll('{{methodsBlock}}', clientMethodsBlock)
+                .replaceAll('{{functionsBlock}}', clientFunctionsBlock)
 
             fs.writeFileSync(clientFilePath, clientApiFileContent, 'utf8')
-            if (methodNames.length > 0) {
-                importApiLine.push(`import { ${methodNames.join(', ')} } from './${apiClientsFileName}'`)
+            if (functionNames.length > 0) {
+                importApiLine.push(`import { ${functionNames.join(', ')} } from './${apiClientsFileName}'`)
             }
             
             generatedClientFiles.push(clientFilePath)
@@ -105,7 +106,7 @@ export function createApiClientFile(routeStubs = getFunctionStubs(appRootPath)) 
         generatedClients.push({
             clientFiles: generatedClientFiles,
             copiedClientFile: copiedClientPath,
-            routeCount: routeStubs.length
+            routeCount: restFunctionStubs.length
         })
     }
 

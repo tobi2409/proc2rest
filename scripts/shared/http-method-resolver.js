@@ -5,8 +5,8 @@ const defaultMethodRules = {
     DELETE: '^(delete|remove)'
 }
 
-export function resolveHttpMethod(methodName, methodRules = defaultMethodRules, customFunctions = {}) {
-    const overrideMethod = customFunctions[methodName]
+export function resolveHttpMethod(functionName, methodRules = defaultMethodRules, customFunctions = {}) {
+    const overrideMethod = customFunctions[functionName]
     if (overrideMethod) {
         return overrideMethod
     }
@@ -16,7 +16,7 @@ export function resolveHttpMethod(methodName, methodRules = defaultMethodRules, 
             continue
         }
 
-        if (new RegExp(functionNamePattern, 'i').test(methodName)) {
+        if (new RegExp(functionNamePattern, 'i').test(functionName)) {
             return httpMethod
         }
     }

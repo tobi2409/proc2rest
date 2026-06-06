@@ -7,6 +7,8 @@ import { decode, encode } from '@msgpack/msgpack'
 const app = express()
 app.use(cors({{corsOptions}}))
 
+{{rawCode}}
+
 {{routesCode}}
 
 const port = Number(process.env.PORT ?? 3000)

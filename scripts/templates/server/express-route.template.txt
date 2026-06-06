@@ -1,10 +1,10 @@
-app.{{expressMethod}}('/api/{{methodName}}', [{{bodyParserMiddleware}}{{middlewareFunctionNames}}], async (req: Request, res: Response) => {
+app.{{expressMethod}}('/api/{{functionName}}', [{{bodyParserMiddleware}}{{middlewareFunctionNames}}], async (req: Request, res: Response) => {
   try {
     const args = {{argsExpression}}
 
     {{missingParamsBlock}}
 
-    const result = await Promise.resolve({{methodCall}})
+    const result = await Promise.resolve({{functionCall}})
     {{sendResultExpression}}
   } catch (error) {
     res.status(500).json({ error: error instanceof Error ? error.message : 'Unknown error' })

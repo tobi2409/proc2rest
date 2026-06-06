@@ -50,4 +50,4 @@ async function request(path, method, params = {}, contentType = 'application/jso
   return payload.result
 }
 
-{{methodsBlock}}
+{{functionsBlock}}

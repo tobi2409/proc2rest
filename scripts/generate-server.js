@@ -1,6 +1,6 @@
 import * as path from 'path'
 import * as fs from 'fs'
-import { getFunctionStubs } from './shared/function-stubs.js'
+import { getExportedFunctionsMetadata } from './shared/exported-functions-metadata.js'
 import { getGeneratorConfig } from './shared/generator-config.js'
 import { getAppRootPath } from './shared/app-path.js'
 
@@ -16,12 +16,12 @@ const generatedTsConfigTemplatePath = path.resolve('templates/config/generated-t
 const generatedTsConfigTemplate = fs.readFileSync(generatedTsConfigTemplatePath, 'utf8')
 
 const appRootPath = getAppRootPath()
-const functionStubs = getFunctionStubs(appRootPath)
+const exportedFunctionsMetadata = getExportedFunctionsMetadata(appRootPath)
 const generatorConfig = getGeneratorConfig(appRootPath)
 
 function createRouteBody(routeStub) {
     const paramNames = routeStub.params.map((param) => param.name)
-    const methodCall = `${routeStub.methodName}(${paramNames.map((name) => `args.${name}`).join(', ')})`
+    const functionCall = `${routeStub.functionName}(${paramNames.map((name) => `args.${name}`).join(', ')})`
     const expressMethod = routeStub.httpMethod.toLowerCase()
     const argsExpression = routeStub.httpMethod === 'GET'
         ? 'req.query ?? {}'
@@ -47,10 +47,10 @@ function createRouteBody(routeStub) {
 
     return routeTemplate
         .replaceAll('{{expressMethod}}', expressMethod)
-        .replaceAll('{{methodName}}', routeStub.methodName)
+        .replaceAll('{{functionName}}', routeStub.functionName)
         .replaceAll('{{argsExpression}}', argsExpression)
         .replaceAll('{{missingParamsBlock}}', missingParamsBlock)
-        .replaceAll('{{methodCall}}', methodCall)
+        .replaceAll('{{functionCall}}', functionCall)
         .replaceAll('{{bodyParserMiddleware}}', bodyParserMiddleware)
         .replaceAll('{{middlewareFunctionNames}}', middlewareFunctionNames)
         .replaceAll('{{sendResultExpression}}', sendResultExpression)
@@ -83,11 +83,11 @@ function createExpressRoutesFile() {
 
     // Collect all exported names by server file for imports
     const exportedNamesByServerFile = {}
-    for (const stub of functionStubs) {
+    for (const stub of exportedFunctionsMetadata) {
         if (!exportedNamesByServerFile[stub.serverFile]) {
             exportedNamesByServerFile[stub.serverFile] = new Set()
         }
-        exportedNamesByServerFile[stub.serverFile].add(stub.methodName)
+        exportedNamesByServerFile[stub.serverFile].add(stub.functionName)
     }
 
     const importsLines = []
@@ -98,14 +98,26 @@ function createExpressRoutesFile() {
 
     const importsBlock = importsLines.join('\n')
     // Only generate routes from stubs with hasRestMarker
-    const routesCode = functionStubs
+    const routesCode = exportedFunctionsMetadata
         .filter((stub) => stub.hasRestMarker)
         .map((stub) => createRouteBody(stub))
+        .join('\n\n')
+
+    const rawServerFiles = generatorConfig.rawServerFiles ?? []
+    const rawCode = rawServerFiles
+        .map((rawFile) => {
+            const rawFilePath = path.join(appRootPath, rawFile)
+            if (!fs.existsSync(rawFilePath)) {
+                throw new Error(`Could not find raw server file ${rawFile}`)
+            }
+            return fs.readFileSync(rawFilePath, 'utf8').trim()
+        })
         .join('\n\n')
 
     const fileContent = routesFileTemplate
         .replaceAll('{{corsOptions}}', JSON.stringify(generatorConfig.cors ?? { origin: '*' }))
         .replaceAll('{{importsLine}}', importsBlock)
+        .replaceAll('{{rawCode}}', rawCode)
         .replaceAll('{{routesCode}}', routesCode)
 
     fs.writeFileSync(destFilePath, fileContent, 'utf8')
@@ -122,4 +134,4 @@ function createExpressRoutesFile() {
 
 createExpressRoutesFile()
 
-console.log(JSON.stringify(functionStubs, null, 2))
+console.log(JSON.stringify(exportedFunctionsMetadata, null, 2))
