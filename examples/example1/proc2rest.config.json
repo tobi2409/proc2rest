@@ -28,13 +28,13 @@
     "getBinDataInfo": "POST"
   },
   "binaryTypes": [
-    "ReverseResult",
     "ArrayBuffer",
     "Uint8Array",
     "Uint8Array<ArrayBufferLike>",
     "Buffer",
     "Blob",
     "ImageData",
-    "File"
+    "File",
+    "ReverseResult"
   ]
 }
