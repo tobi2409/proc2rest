@@ -256,17 +256,11 @@ Or inspect in browser DevTools → Network → binary request body.
 ## Limitations & TODOs
 
 ### High Priority
-- **Namespacing for multiple servers**: Prevent method name collisions by grouping exports per server (e.g., `userApi.getUser()`, `orderApi.getUser()`)
-- **Filename patterns in config**: Support glob patterns like `*.server.ts` instead of listing individual files
-- **HTTP method rules in config**: Allow custom function-to-HTTP-method mapping (e.g., `{ "methods": { "fetch": "GET", "store": "POST" } }`)
-- **Authentication hooks**: Flexible auth header generation (Bearer, API-Key, custom)
-- **Vanilla Express route support**: Allow custom routes and arbitrary code (imports, middleware, custom handlers) to be included 1:1 in generated server
-
-### Medium Priority
-- **Custom templates for generated code**: Allow customization of generated Express server and client (e.g., DB pool initialization, middleware hooks, custom decorators)
+- **Custom express-routes-file template in config**: Allow overriding the main server file template (e.g., to initialize an HTTPS server, add custom middleware setup, or change the app bootstrap)
 - Selective function export (ability to exclude specific functions from API)
 - Content negotiation on server (respond based on `Accept` header)
 
-### Nice to Have
-- Class/namespace exports with method grouping
-- Built-in integration tests for JSON + Binary roundtrips
+### Medium Priority
+- **Namespacing for multiple servers**: Prevent method name collisions by grouping exports per server (e.g., `userApi.getUser()`, `orderApi.getUser()`)
+- **Filename patterns in config**: Support glob patterns like `*.server.ts` instead of listing individual files
+- **Unit tests for the generator**: Test metadata extraction, HTTP method resolution, and code generation output
