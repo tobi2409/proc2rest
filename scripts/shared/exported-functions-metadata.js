@@ -3,7 +3,7 @@ import * as fs from 'fs'
 import { Project, ts } from 'ts-morph'
 
 import { resolveHttpMethod } from './http-method-resolver.js'
-import { getAppRootPath } from './app-path.js'
+import { getAppRootPath } from './cli-args.js'
 import { getGeneratorConfig } from './generator-config.js'
 
 const generatorConfigCache = new Map()

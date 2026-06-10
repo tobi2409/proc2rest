@@ -1,6 +1,5 @@
 import * as fs from 'fs'
-import * as path from 'path'
-import { getAppRootPath } from './app-path.js'
+import { getAppRootPath, getConfigPath } from './cli-args.js'
 
 const defaultConfig = {
     apiUrl: 'http://localhost:3000',
@@ -14,7 +13,7 @@ function isObject(value) {
 }
 
 export function getGeneratorConfig(appRootPath = getAppRootPath()) {
-    const configPath = path.join(appRootPath, 'proc2rest.config.json')
+    const configPath = getConfigPath(appRootPath)
 
     if (!fs.existsSync(configPath)) {
         return defaultConfig

@@ -79,7 +79,7 @@ export function uploadFile(filename: string, data: Uint8Array): string {
 ### 3. Generate Code
 
 ```bash
-npm run generate --appPath=../examples/example1
+npm run generate --appPath=../examples/example1 --generatedDir=generated --configPath=proc2rest.config.json
 ```
 
 This creates:
@@ -208,7 +208,7 @@ proc2rest/
 │   ├── shared/
 │   │   ├── route-stubs.js          # TS parser
 │   │   ├── generator-config.js     # Config loader
-│   │   └── app-path.js
+│   │   └── cli-args.js
 │   └── templates/
 │       ├── express-route.template.txt
 │       ├── express-routes-file.template.txt
@@ -230,7 +230,7 @@ To regenerate after changes to server functions:
 
 ```bash
 cd proc2rest/scripts
-npm run generate --appPath=../examples/example1
+npm run generate --appPath=../examples/example1 --generatedDir=generated --configPath=proc2rest.config.json
 ```
 
 Then restart the server:
