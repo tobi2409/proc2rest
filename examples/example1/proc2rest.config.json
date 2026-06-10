@@ -1,19 +1,7 @@
 {
-  "clients": [{
-    "filename": "index.html",
-    "servers": []
-  }, {
-    "filename": "index.js",
-    "servers": ["my-server.ts"]
-  }, {
-    "filename": "page-two.html",
-    "servers": []
-  }, {
-    "filename": "page-two.js",
-    "servers": ["my-server.ts"]
-  }],
-  "servers": ["my-server.ts"],
-  "rawServerFiles": ["my-server-raw.ts"],
+  "jsClients": ["src/client/index.js", "src/client/page-two.js"],
+  "servers": ["src/server/first/my-server.ts", "src/server/second/second-module.ts"],
+  "rawServerFiles": ["src/server/my-server-raw.ts"],
   "apiUrl": "http://localhost:3000",
   "cors": {
     "origin": "*"

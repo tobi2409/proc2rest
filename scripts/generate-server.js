@@ -2,8 +2,10 @@ import * as path from 'path'
 import * as fs from 'fs'
 import { fileURLToPath } from 'url'
 import { getExportedFunctionsMetadata } from './shared/exported-functions-metadata.js'
-import { getGeneratorConfig } from './shared/generator-config.js'
-import { getAppRootPath, getGeneratedServerRootPath } from './shared/cli-args.js'
+import { getCachedGeneratorConfig } from './shared/generator-config.js'
+import { getAppRootPath, getGeneratedServerRootPath, getSrcServerRootPath } from './shared/cli-args.js'
+import { copySourceTree } from './shared/file-copy.js'
+import { getRelativePathFromSrcDir } from './shared/path-utils.js'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -20,123 +22,125 @@ const generatedTsConfigTemplatePath = path.resolve(__dirname, 'templates/config/
 const generatedTsConfigTemplate = fs.readFileSync(generatedTsConfigTemplatePath, 'utf8')
 
 const appRootPath = getAppRootPath()
+const srcServerRootPath = getSrcServerRootPath(appRootPath)
 const generatedServerRootPath = getGeneratedServerRootPath(appRootPath)
 const exportedFunctionsMetadata = getExportedFunctionsMetadata(appRootPath)
-const generatorConfig = getGeneratorConfig(appRootPath)
+const generatorConfig = getCachedGeneratorConfig(appRootPath)
 
-function createRouteBody(routeStub) {
-    const paramNames = routeStub.params.map((param) => param.name)
-    const functionCall = `${routeStub.functionName}(${paramNames.map((name) => `args.${name}`).join(', ')})`
-    const expressMethod = routeStub.httpMethod.toLowerCase()
-    const argsExpression = routeStub.httpMethod === 'GET'
-        ? 'req.query ?? {}'
-        : routeStub.hasBinaryParams
-            ? 'decode(req.body) as Record<string, unknown>'
-            : 'req.body ?? {}'
-    const bodyParserMiddleware = routeStub.httpMethod === 'GET'
-        ? '(req, _res, next) => next()'
-        : routeStub.hasBinaryParams
-            ? `express.raw({ type: 'application/msgpack' })`
-            : 'express.json()'
-    const middlewareFunctionNames = (routeStub.middlewares ?? []).length > 0
-        ? `, ${(routeStub.middlewares ?? []).join(', ')}`
-        : ''
+function toNamespaceAlias(serverFileName, aliasCounters) {
+    const baseName = path.basename(serverFileName, '.ts')
+    const normalized = baseName.replace(/[^a-zA-Z0-9]+(.)/g, (_match, chr) => chr.toUpperCase())
+    const baseAlias = normalized.charAt(0).toLowerCase() + normalized.slice(1) || 'server'
 
-    const sendResultExpression = routeStub.returnIsBinary
-        ? `res.set('Content-Type', 'application/msgpack').send(Buffer.from(encode({ result })))`
-        : 'res.json({ result })'
+    const count = aliasCounters.get(baseAlias) ?? 0
+    aliasCounters.set(baseAlias, count + 1)
 
-    const missingParamsBlock = paramNames.length > 0
-        ? missingParamsTemplate.replaceAll('{{paramList}}', paramNames.map((name) => `'${name}'`).join(', '))
-        : ''
+    return count === 0
+        ? baseAlias
+        : `${baseAlias}${count + 1}`
+}
 
-    return routeTemplate
-        .replaceAll('{{expressMethod}}', expressMethod)
-        .replaceAll('{{functionName}}', routeStub.functionName)
-        .replaceAll('{{argsExpression}}', argsExpression)
-        .replaceAll('{{missingParamsBlock}}', missingParamsBlock)
-        .replaceAll('{{functionCall}}', functionCall)
-        .replaceAll('{{bodyParserMiddleware}}', bodyParserMiddleware)
-        .replaceAll('{{middlewareFunctionNames}}', middlewareFunctionNames)
-        .replaceAll('{{sendResultExpression}}', sendResultExpression)
+function createRouteBody(routeStub, namespaceAlias) {
+    try {
+        const paramNames = routeStub.params.map((param) => param.name)
+        const functionCall = `${namespaceAlias}.${routeStub.functionName}(${paramNames.map((name) => `args.${name}`).join(', ')})`
+        const expressMethod = routeStub.httpMethod.toLowerCase()
+        const argsExpression = routeStub.httpMethod === 'GET'
+            ? 'req.query ?? {}'
+            : routeStub.hasBinaryParams
+                ? 'decode(req.body) as Record<string, unknown>'
+                : 'req.body ?? {}'
+        const bodyParserMiddleware = routeStub.httpMethod === 'GET'
+            ? '(req, _res, next) => next()'
+            : routeStub.hasBinaryParams
+                ? `express.raw({ type: 'application/msgpack' })`
+                : 'express.json()'
+        const middlewareFunctionNames = (routeStub.middlewares ?? []).length > 0
+            ? `, ${(routeStub.middlewares ?? []).map((middlewareName) => `${namespaceAlias}.${middlewareName}`).join(', ')}`
+            : ''
+
+        const sendResultExpression = routeStub.returnIsBinary
+            ? `res.set('Content-Type', 'application/msgpack').send(Buffer.from(encode({ result })))`
+            : 'res.json({ result })'
+
+        const missingParamsBlock = paramNames.length > 0
+            ? missingParamsTemplate.replaceAll('{{paramList}}', paramNames.map((name) => `'${name}'`).join(', '))
+            : ''
+
+        return routeTemplate
+            .replaceAll('{{expressMethod}}', expressMethod)
+            .replaceAll('{{functionName}}', `${namespaceAlias}/${routeStub.functionName}`)
+            .replaceAll('{{argsExpression}}', argsExpression)
+            .replaceAll('{{missingParamsBlock}}', missingParamsBlock)
+            .replaceAll('{{functionCall}}', functionCall)
+            .replaceAll('{{bodyParserMiddleware}}', bodyParserMiddleware)
+            .replaceAll('{{middlewareFunctionNames}}', middlewareFunctionNames)
+            .replaceAll('{{sendResultExpression}}', sendResultExpression)
+    } catch (error) {
+        throw new Error(`Failed to create route body for '${routeStub.functionName}': ${error instanceof Error ? error.message : error}`)
+    }
 }
 
 function createExpressRoutesFile() {
-    const destDir = generatedServerRootPath
-    const destFilePath = path.join(destDir, 'express-routes.generated.ts')
-    const packageJsonPath = path.join(destDir, 'package.json')
-    const tsConfigPath = path.join(destDir, 'tsconfig.json')
+    try {
+        const destDir = generatedServerRootPath
+        const destFilePath = path.join(destDir, 'express-routes.generated.ts')
+        const packageJsonPath = path.join(destDir, 'package.json')
+        const tsConfigPath = path.join(destDir, 'tsconfig.json')
 
-    if (!fs.existsSync(destDir)) {
-        fs.mkdirSync(destDir, { recursive: true })
-    }
+        const importsLines = []
+        const namespaceAliasByServerFile = {}
+        const aliasCounters = new Map()
+        const configuredServers = generatorConfig.servers ?? []
 
-    const serverFiles = generatorConfig.servers ?? []
-    const copiedSourceFiles = []
+        for (const configuredServerFile of configuredServers) {
+            const absoluteServerFile = path.join(appRootPath, configuredServerFile)
+            const serverFileName = getRelativePathFromSrcDir(absoluteServerFile, srcServerRootPath)
 
-    for (const serverFileName of serverFiles) {
-        const sourceFilePath = path.join(appRootPath, serverFileName)
-        const copiedSourcePath = path.join(destDir, serverFileName)
+            const importPath = serverFileName.replace(/\.ts$/, '')
+            const namespaceAlias = toNamespaceAlias(serverFileName, aliasCounters)
+            namespaceAliasByServerFile[serverFileName] = namespaceAlias
 
-        if (!fs.existsSync(sourceFilePath)) {
-            throw new Error(`Could not find ${serverFileName}`)
+            importsLines.push(`import * as ${namespaceAlias} from './${importPath}'`)
         }
 
-        fs.copyFileSync(sourceFilePath, copiedSourcePath)
-        copiedSourceFiles.push(copiedSourcePath)
-    }
+        const importsBlock = importsLines.join('\n')
+        // Only generate routes from stubs with hasRestMarker
+        const routesCode = exportedFunctionsMetadata
+            .filter((stub) => stub.hasRestMarker)
+            .map((stub) => createRouteBody(stub, namespaceAliasByServerFile[stub.serverFile]))
+            .join('\n\n')
 
-    // Collect all exported names by server file for imports
-    const exportedNamesByServerFile = {}
-    for (const stub of exportedFunctionsMetadata) {
-        if (!exportedNamesByServerFile[stub.serverFile]) {
-            exportedNamesByServerFile[stub.serverFile] = new Set()
-        }
-        exportedNamesByServerFile[stub.serverFile].add(stub.functionName)
-    }
+        const rawServerFiles = generatorConfig.rawServerFiles ?? []
+        const rawCode = rawServerFiles
+            .map((rawFile) => {
+                const rawFilePath = path.join(appRootPath, rawFile)
+                if (!fs.existsSync(rawFilePath)) {
+                    throw new Error(`Could not find raw server file ${rawFile}`)
+                }
+                return fs.readFileSync(rawFilePath, 'utf8').trim()
+            })
+            .join('\n\n')
 
-    const importsLines = []
-    for (const [serverFileName, exportedNames] of Object.entries(exportedNamesByServerFile)) {
-        const importPath = serverFileName.replace('.ts', '')
-        importsLines.push(`import { ${[...exportedNames].join(', ')} } from './${importPath}'`)
-    }
+        const fileContent = routesFileTemplate
+            .replaceAll('{{corsOptions}}', JSON.stringify(generatorConfig.cors ?? { origin: '*' }))
+            .replaceAll('{{importsLine}}', importsBlock)
+            .replaceAll('{{rawCode}}', rawCode)
+            .replaceAll('{{routesCode}}', routesCode)
 
-    const importsBlock = importsLines.join('\n')
-    // Only generate routes from stubs with hasRestMarker
-    const routesCode = exportedFunctionsMetadata
-        .filter((stub) => stub.hasRestMarker)
-        .map((stub) => createRouteBody(stub))
-        .join('\n\n')
-
-    const rawServerFiles = generatorConfig.rawServerFiles ?? []
-    const rawCode = rawServerFiles
-        .map((rawFile) => {
-            const rawFilePath = path.join(appRootPath, rawFile)
-            if (!fs.existsSync(rawFilePath)) {
-                throw new Error(`Could not find raw server file ${rawFile}`)
-            }
-            return fs.readFileSync(rawFilePath, 'utf8').trim()
-        })
-        .join('\n\n')
-
-    const fileContent = routesFileTemplate
-        .replaceAll('{{corsOptions}}', JSON.stringify(generatorConfig.cors ?? { origin: '*' }))
-        .replaceAll('{{importsLine}}', importsBlock)
-        .replaceAll('{{rawCode}}', rawCode)
-        .replaceAll('{{routesCode}}', routesCode)
-
-    fs.writeFileSync(destFilePath, fileContent, 'utf8')
-    fs.writeFileSync(packageJsonPath, generatedPackageTemplate, 'utf8')
-    fs.writeFileSync(tsConfigPath, generatedTsConfigTemplate, 'utf8')
-
-    return {
-        routesFile: destFilePath,
-        copiedSourceFiles,
-        packageJsonFile: packageJsonPath,
-        tsConfigFile: tsConfigPath
+        fs.writeFileSync(destFilePath, fileContent, 'utf8')
+        fs.writeFileSync(packageJsonPath, generatedPackageTemplate, 'utf8')
+        fs.writeFileSync(tsConfigPath, generatedTsConfigTemplate, 'utf8')
+    } catch (error) {
+        console.error('Error creating express routes file:', error instanceof Error ? error.message : error)
+        process.exit(1)
     }
 }
 
-createExpressRoutesFile()
-
-console.log(JSON.stringify(exportedFunctionsMetadata, null, 2))
+try {
+    copySourceTree(srcServerRootPath, generatedServerRootPath)
+    createExpressRoutesFile()
+} catch (error) {
+    console.error('Error generating server files:', error instanceof Error ? error.message : error)
+    process.exit(1)
+}

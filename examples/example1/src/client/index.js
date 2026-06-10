@@ -1,7 +1,10 @@
+// @server-import first/my-server.ts as myServer
+// @server-import my-server-raw.ts as myServerRaw
+
 const btn = document.getElementById('btn')
 
 btn.addEventListener('click', async () => {
-    const result = (await getPerson('Jane Doe'))
+    const result = (await myServer.getPerson('Jane Doe'))
 
     for (const entry of result) {
         alert(`${entry.name} is ${entry.age} years old.`)
@@ -12,22 +15,23 @@ const btn2 = document.getElementById('btn2')
 
 btn2.addEventListener('click', async () => {
     const data = new Uint8Array([1, 2, 3, 4, 5])
-    const binDataInfo = await getBinDataInfo('mydata', data)
+    const binDataInfo = await myServer.getBinDataInfo('mydata', data)
     alert(`Bin Data Info: ${binDataInfo}`)
 })
 
 const btn4 = document.getElementById('btn4')
-const btn5 = document.getElementById('btn5')
 
 btn4.addEventListener('click', async () => {
     const data = new Uint8Array([1, 2, 3, 4, 5])
-    const reversed = await reverseBytes(data)
+    const reversed = await myServer.reverseBytes(data)
     alert(`Original: [${data}]\nReversed: [${reversed}]`)
 })
 
+const btn5 = document.getElementById('btn5')
+
 btn5.addEventListener('click', async () => {
     const data = new Uint8Array([1, 2, 3, 4, 5])
-    const result = await reverseBytesWithName('mydata', data)
+    const result = await myServer.reverseBytesWithName('mydata', data)
     alert(`Name: ${result.name}\nOriginal: [${data}]\nReversed: [${result.reversed}]`)
 })
 
@@ -50,7 +54,7 @@ btn3.addEventListener('click', async () => {
         console.log('Uint8Array:', uint8Array)
 
         // Call the API with the file data
-        const result = await getBinDataInfo(file.name, uint8Array)
+        const result = await myServer.getBinDataInfo(file.name, uint8Array)
         console.log(`Result: ${result}`)
         alert(`File uploaded: ${result}`)
     } catch (error) {

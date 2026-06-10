@@ -8,21 +8,39 @@ const defaultConfig = {
     }
 }
 
+const generatorConfigCache = new Map()
+
 function isObject(value) {
     return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
 export function getGeneratorConfig(appRootPath = getAppRootPath()) {
-    const configPath = getConfigPath(appRootPath)
+    try {
+        const configPath = getConfigPath(appRootPath)
 
-    if (!fs.existsSync(configPath)) {
-        return defaultConfig
+        if (!fs.existsSync(configPath)) {
+            return defaultConfig
+        }
+
+        const parsed = JSON.parse(fs.readFileSync(configPath, 'utf8'))
+
+        return {
+            ...defaultConfig,
+            ...(isObject(parsed) ? parsed : {})
+        }
+    } catch (error) {
+        throw new Error(`Failed to load generator config: ${error instanceof Error ? error.message : error}`)
     }
+}
 
-    const parsed = JSON.parse(fs.readFileSync(configPath, 'utf8'))
+export function getCachedGeneratorConfig(appRootPath = getAppRootPath()) {
+    try {
+        if (!generatorConfigCache.has(appRootPath)) {
+            generatorConfigCache.set(appRootPath, getGeneratorConfig(appRootPath))
+        }
 
-    return {
-        ...defaultConfig,
-        ...(isObject(parsed) ? parsed : {})
+        return generatorConfigCache.get(appRootPath)
+    } catch (error) {
+        throw new Error(`Failed to get cached generator config: ${error instanceof Error ? error.message : error}`)
     }
 }
