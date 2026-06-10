@@ -4,7 +4,7 @@ import { fileURLToPath } from 'url'
 
 import { getExportedFunctionsMetadata } from './shared/exported-functions-metadata.js'
 import { getGeneratorConfig } from './shared/generator-config.js'
-import { getAppRootPath, getGeneratedRootPath } from './shared/cli-args.js'
+import { getAppRootPath, getGeneratedClientRootPath } from './shared/cli-args.js'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -14,7 +14,7 @@ const clientFileTemplate = fs.readFileSync(clientFileTemplatePath, 'utf8')
 const clientFunctionTemplatePath = path.resolve(__dirname, 'templates/client/client-function.template.txt')
 const clientFunctionTemplate = fs.readFileSync(clientFunctionTemplatePath, 'utf8')
 const appRootPath = getAppRootPath()
-const generatedRootPath = getGeneratedRootPath(appRootPath)
+const generatedClientRootPath = getGeneratedClientRootPath(appRootPath)
 const generatorConfig = getGeneratorConfig(appRootPath)
 
 function createClientFunction(routeStub) {
@@ -41,7 +41,7 @@ function createClientFunction(routeStub) {
 }
 
 export function createApiClientFile(exportedFunctionsMetadata = getExportedFunctionsMetadata(appRootPath)) {
-    const destDir = path.join(generatedRootPath, 'client')
+    const destDir = generatedClientRootPath
     const restFunctionStubs = exportedFunctionsMetadata.filter((stub) => stub.hasRestMarker)
 
     if (!fs.existsSync(destDir)) {

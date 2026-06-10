@@ -3,7 +3,7 @@ import * as fs from 'fs'
 import { fileURLToPath } from 'url'
 import { getExportedFunctionsMetadata } from './shared/exported-functions-metadata.js'
 import { getGeneratorConfig } from './shared/generator-config.js'
-import { getAppRootPath, getGeneratedRootPath } from './shared/cli-args.js'
+import { getAppRootPath, getGeneratedServerRootPath } from './shared/cli-args.js'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -20,7 +20,7 @@ const generatedTsConfigTemplatePath = path.resolve(__dirname, 'templates/config/
 const generatedTsConfigTemplate = fs.readFileSync(generatedTsConfigTemplatePath, 'utf8')
 
 const appRootPath = getAppRootPath()
-const generatedRootPath = getGeneratedRootPath(appRootPath)
+const generatedServerRootPath = getGeneratedServerRootPath(appRootPath)
 const exportedFunctionsMetadata = getExportedFunctionsMetadata(appRootPath)
 const generatorConfig = getGeneratorConfig(appRootPath)
 
@@ -62,7 +62,7 @@ function createRouteBody(routeStub) {
 }
 
 function createExpressRoutesFile() {
-    const destDir = path.join(generatedRootPath, 'server')
+    const destDir = generatedServerRootPath
     const destFilePath = path.join(destDir, 'express-routes.generated.ts')
     const packageJsonPath = path.join(destDir, 'package.json')
     const tsConfigPath = path.join(destDir, 'tsconfig.json')

@@ -12,7 +12,7 @@ const btn2 = document.getElementById('btn2')
 
 btn2.addEventListener('click', async () => {
     const data = new Uint8Array([1, 2, 3, 4, 5])
-    const binDataInfo = await pgetBinDataInfo('mydata', data)
+    const binDataInfo = await getBinDataInfo('mydata', data)
     alert(`Bin Data Info: ${binDataInfo}`)
 })
 
@@ -50,7 +50,7 @@ btn3.addEventListener('click', async () => {
         console.log('Uint8Array:', uint8Array)
 
         // Call the API with the file data
-        const result = await pgetBinDataInfo(file.name, uint8Array)
+        const result = await getBinDataInfo(file.name, uint8Array)
         console.log(`Result: ${result}`)
         alert(`File uploaded: ${result}`)
     } catch (error) {

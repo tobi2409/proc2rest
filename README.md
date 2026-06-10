@@ -79,13 +79,13 @@ export function uploadFile(filename: string, data: Uint8Array): string {
 ### 3. Generate Code
 
 ```bash
-npm run generate --appPath=../examples/example1 --generatedDir=generated --configPath=proc2rest.config.json
+npm run generate --appPath=../examples/example1 --generatedServerDir=generated/server --generatedClientDir=generated/client --configPath=proc2rest.config.json
 ```
 
 This creates:
 - `generated/server/express-routes.generated.ts` - Express routes
 - `generated/server/package.json` - Server dependencies
-- `generated/client/my-server.ts-client.js` - API client module
+- `generated/client/my-server-client.js` - API client module
 - `generated/client/index.js` - Updated with imports (from `index.js` config)
 
 ### 4. Start Server
@@ -108,8 +108,8 @@ The server runs on port 3000 (or `$PORT` env var).
 
 `index.js` (auto-updated by generator):
 ```javascript
-import * as my_server_ts_client_js from './my-server.ts-client.js'
-const { getPerson } = my_server_ts_client_js
+import * as myServerClient from './my-server-client.js'
+const { getPerson } = myServerClient
 
 document.getElementById('btn').addEventListener('click', async () => {
   const person = await getPerson('Jane Doe')
@@ -135,7 +135,7 @@ Examples: `getPerson` → `GET`, `addPerson` → `POST`, `deleteUser` → `DELET
 
 ### Server Generation
 
-1. Parser (`route-stubs.js`) uses `ts-morph` to extract function signatures
+1. Parser (`exported-functions-metadata.js`) uses `ts-morph` to extract function signatures
 2. HTTP method is resolved from the function name (see above)
 3. Detects parameter types against `binaryTypes` config
 4. Generates appropriate middleware:
@@ -187,7 +187,7 @@ export function processFile(filename: string, data: Uint8Array): number {
 ### Client JS
 
 ```javascript
-import { processFile } from './my-server.ts-client.js'
+import { processFile } from './my-server-client.js'
 
 document.getElementById('uploadBtn').addEventListener('click', async () => {
   const file = document.getElementById('fileInput').files[0]
@@ -206,14 +206,14 @@ proc2rest/
 │   ├── generate-server.js          # Server generator
 │   ├── generate-client.js          # Client generator
 │   ├── shared/
-│   │   ├── route-stubs.js          # TS parser
+│   │   ├── exported-functions-metadata.js  # TS parser
 │   │   ├── generator-config.js     # Config loader
 │   │   └── cli-args.js
 │   └── templates/
 │       ├── express-route.template.txt
 │       ├── express-routes-file.template.txt
 │       ├── client-file.template.txt
-│       ├── client-method.template.txt
+│       ├── client-function.template.txt
 │       └── generated-package.template.json
 └── examples/
     └── example1/
@@ -230,7 +230,7 @@ To regenerate after changes to server functions:
 
 ```bash
 cd proc2rest/scripts
-npm run generate --appPath=../examples/example1 --generatedDir=generated --configPath=proc2rest.config.json
+npm run generate --appPath=../examples/example1 --generatedServerDir=generated/server --generatedClientDir=generated/client --configPath=proc2rest.config.json
 ```
 
 Then restart the server:

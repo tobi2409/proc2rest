@@ -1,13 +1,13 @@
 import * as path from 'path'
 
 export function getCliArgValue(flagName) {
-    const index = process.argv.indexOf(flagName)
+    const index = process.argv.lastIndexOf(flagName)
 
     if (index >= 0 && process.argv[index + 1]) {
         return process.argv[index + 1]
     }
 
-    const withEquals = process.argv.find((arg) => arg.startsWith(`${flagName}=`))
+    const withEquals = [...process.argv].reverse().find((arg) => arg.startsWith(`${flagName}=`))
 
     if (withEquals) {
         return withEquals.slice(flagName.length + 1)
@@ -23,16 +23,20 @@ export function getAppRootPath() {
     return path.resolve(rawPath)
 }
 
-export function getGeneratedRootPath(appRootPath = getAppRootPath()) {
-    const cliGeneratedDir = getCliArgValue('--generatedDir')
+function resolveGeneratedPath(appRootPath, cliValue, fallbackRelativePath) {
+    const basePath = cliValue ?? fallbackRelativePath
 
-    if (!cliGeneratedDir) {
-        return path.join(appRootPath, 'generated')
-    }
+    return path.isAbsolute(basePath)
+        ? path.resolve(basePath)
+        : path.resolve(appRootPath, basePath)
+}
 
-    return path.isAbsolute(cliGeneratedDir)
-        ? path.resolve(cliGeneratedDir)
-        : path.resolve(appRootPath, cliGeneratedDir)
+export function getGeneratedServerRootPath(appRootPath = getAppRootPath()) {
+    return resolveGeneratedPath(appRootPath, getCliArgValue('--generatedServerDir'), 'generated/server')
+}
+
+export function getGeneratedClientRootPath(appRootPath = getAppRootPath()) {
+    return resolveGeneratedPath(appRootPath, getCliArgValue('--generatedClientDir'), 'generated/client')
 }
 
 export function getConfigPath(appRootPath = getAppRootPath()) {
