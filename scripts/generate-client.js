@@ -1,13 +1,17 @@
 import * as fs from 'fs'
 import * as path from 'path'
+import { fileURLToPath } from 'url'
 
 import { getExportedFunctionsMetadata } from './shared/exported-functions-metadata.js'
 import { getGeneratorConfig } from './shared/generator-config.js'
 import { getAppRootPath } from './shared/app-path.js'
 
-const clientFileTemplatePath = path.resolve('templates/client/client-file.template.txt')
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
+
+const clientFileTemplatePath = path.resolve(__dirname, 'templates/client/client-file.template.txt')
 const clientFileTemplate = fs.readFileSync(clientFileTemplatePath, 'utf8')
-const clientFunctionTemplatePath = path.resolve('templates/client/client-function.template.txt')
+const clientFunctionTemplatePath = path.resolve(__dirname, 'templates/client/client-function.template.txt')
 const clientFunctionTemplate = fs.readFileSync(clientFunctionTemplatePath, 'utf8')
 const appRootPath = getAppRootPath()
 const generatorConfig = getGeneratorConfig(appRootPath)
