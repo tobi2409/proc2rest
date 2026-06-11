@@ -257,11 +257,7 @@ Or inspect in browser DevTools → Network → binary request body.
 
 ### High Priority
 - **Custom express-routes-file template in config**: Allow overriding the main server file template (e.g., to initialize an HTTPS server, Logging, add custom middleware setup, or change the app bootstrap)
-- **Deduplicate server client files**: If multiple client entries reference the same server file, the corresponding `*-client.js` is currently generated multiple times — it should only be written once
-- Selective function export (ability to exclude specific functions from API)
-- Content negotiation on server (respond based on `Accept` header)
 - **Unit tests for the generator**: Test metadata extraction, HTTP method resolution, and code generation output
 
 ### Medium Priority
-- **Namespacing for multiple servers**: Prevent method name collisions by grouping exports per server (e.g., `userApi.getUser()`, `orderApi.getUser()`)
 - **Filename patterns in config**: Support glob patterns like `*.server.ts` instead of listing individual files

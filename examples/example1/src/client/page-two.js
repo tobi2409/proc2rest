@@ -1,5 +1,5 @@
-// @server-import first/my-server.ts as myServer
-// @server-import second/second-module.ts as secondModule
+// @server-import first/my-server.ts
+// @server-import second/pathtest/second-module.ts
 
 const btn = document.getElementById('btn')
 

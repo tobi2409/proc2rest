@@ -46,23 +46,26 @@ function getMiddlewaresFromFunctionComments(fn) {
 function getExportedFunctions(appRootPath) {
     try {
         const generatorConfig = getCachedGeneratorConfig(appRootPath)
-        const serverFiles = generatorConfig.servers ?? []
+        const servers = generatorConfig.servers ?? []
         const binaryTypes = generatorConfig.binaryTypes ?? []
         const exportedFunctions = []
 
-        for (const serverFileName of serverFiles) {
-            const sourceFilePath = path.join(appRootPath, serverFileName)
-            const tsConfigPath = path.join(appRootPath, 'tsconfig.json')
-            const project = fs.existsSync(tsConfigPath)
-                ? new Project({ tsConfigFilePath: tsConfigPath })
-                : new Project()
+        const tsConfigPath = path.join(appRootPath, 'tsconfig.json')
+        const project = fs.existsSync(tsConfigPath)
+            ? new Project({ tsConfigFilePath: tsConfigPath })
+            : new Project()
+
+        for (const serverConfig of servers) {
+            const serverSrc = serverConfig.src
+            const serverNamespace = serverConfig.namespace
+            const sourceFilePath = path.join(appRootPath, serverSrc)
 
             project.addSourceFileAtPathIfExists(sourceFilePath)
 
             const source = project.getSourceFile(sourceFilePath)
 
             if (!source) {
-                throw new Error(`Could not find ${serverFileName}`)
+                throw new Error(`Could not find ${serverSrc}`)
             }
 
             const functions = source.getFunctions().filter((fn) => fn.isExported())
@@ -99,6 +102,7 @@ function getExportedFunctions(appRootPath) {
                 exportedFunctions.push({
                     name: fn.getName() ?? '<anonymous>',
                     serverFile: relativeServerFile,
+                    serverNamespace,
                     isExported: fn.isExported(),
                     hasRestMarker: hasRest,
                     params,
@@ -132,9 +136,10 @@ export function getExportedFunctionsMetadata(appRootPath = getAppRootPath()) {
             exportedFunctionsMetadata.push({
                 functionName: func.name,
                 serverFile: func.serverFile,
+                serverNamespace: func.serverNamespace,
                 isExported: func.isExported,
                 hasRestMarker: func.hasRestMarker,
-                path: `/api/${func.name}`,
+                path: `/api/${func.serverNamespace}/${func.name}`,
                 httpMethod,
                 params: func.params,
                 hasBinaryParams: func.hasBinaryParams,

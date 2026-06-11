@@ -27,23 +27,10 @@ const generatedServerRootPath = getGeneratedServerRootPath(appRootPath)
 const exportedFunctionsMetadata = getExportedFunctionsMetadata(appRootPath)
 const generatorConfig = getCachedGeneratorConfig(appRootPath)
 
-function toNamespaceAlias(serverFileName, aliasCounters) {
-    const baseName = path.basename(serverFileName, '.ts')
-    const normalized = baseName.replace(/[^a-zA-Z0-9]+(.)/g, (_match, chr) => chr.toUpperCase())
-    const baseAlias = normalized.charAt(0).toLowerCase() + normalized.slice(1) || 'server'
-
-    const count = aliasCounters.get(baseAlias) ?? 0
-    aliasCounters.set(baseAlias, count + 1)
-
-    return count === 0
-        ? baseAlias
-        : `${baseAlias}${count + 1}`
-}
-
-function createRouteBody(routeStub, namespaceAlias) {
+function createRouteBody(routeStub) {
     try {
         const paramNames = routeStub.params.map((param) => param.name)
-        const functionCall = `${namespaceAlias}.${routeStub.functionName}(${paramNames.map((name) => `args.${name}`).join(', ')})`
+        const functionCall = `${routeStub.serverNamespace}.${routeStub.functionName}(${paramNames.map((name) => `args.${name}`).join(', ')})`
         const expressMethod = routeStub.httpMethod.toLowerCase()
         const argsExpression = routeStub.httpMethod === 'GET'
             ? 'req.query ?? {}'
@@ -56,7 +43,7 @@ function createRouteBody(routeStub, namespaceAlias) {
                 ? `express.raw({ type: 'application/msgpack' })`
                 : 'express.json()'
         const middlewareFunctionNames = (routeStub.middlewares ?? []).length > 0
-            ? `, ${(routeStub.middlewares ?? []).map((middlewareName) => `${namespaceAlias}.${middlewareName}`).join(', ')}`
+            ? `, ${(routeStub.middlewares ?? []).map((middlewareName) => `${routeStub.serverNamespace}.${middlewareName}`).join(', ')}`
             : ''
 
         const sendResultExpression = routeStub.returnIsBinary
@@ -69,7 +56,8 @@ function createRouteBody(routeStub, namespaceAlias) {
 
         return routeTemplate
             .replaceAll('{{expressMethod}}', expressMethod)
-            .replaceAll('{{functionName}}', `${namespaceAlias}/${routeStub.functionName}`)
+            .replaceAll('{{serverAlias}}', routeStub.serverNamespace)
+            .replaceAll('{{functionName}}', routeStub.functionName)
             .replaceAll('{{argsExpression}}', argsExpression)
             .replaceAll('{{missingParamsBlock}}', missingParamsBlock)
             .replaceAll('{{functionCall}}', functionCall)
@@ -89,26 +77,23 @@ function createExpressRoutesFile() {
         const tsConfigPath = path.join(destDir, 'tsconfig.json')
 
         const importsLines = []
-        const namespaceAliasByServerFile = {}
-        const aliasCounters = new Map()
         const configuredServers = generatorConfig.servers ?? []
 
-        for (const configuredServerFile of configuredServers) {
-            const absoluteServerFile = path.join(appRootPath, configuredServerFile)
+        for (const serverConfig of configuredServers) {
+            const serverSrc = serverConfig.src
+            const serverNamespace = serverConfig.namespace
+            const absoluteServerFile = path.join(appRootPath, serverSrc)
             const serverFileName = getRelativePathFromSrcDir(absoluteServerFile, srcServerRootPath)
-
             const importPath = serverFileName.replace(/\.ts$/, '')
-            const namespaceAlias = toNamespaceAlias(serverFileName, aliasCounters)
-            namespaceAliasByServerFile[serverFileName] = namespaceAlias
 
-            importsLines.push(`import * as ${namespaceAlias} from './${importPath}'`)
+            importsLines.push(`import * as ${serverNamespace} from './${importPath}'`)
         }
 
         const importsBlock = importsLines.join('\n')
         // Only generate routes from stubs with hasRestMarker
         const routesCode = exportedFunctionsMetadata
             .filter((stub) => stub.hasRestMarker)
-            .map((stub) => createRouteBody(stub, namespaceAliasByServerFile[stub.serverFile]))
+            .map((stub) => createRouteBody(stub))
             .join('\n\n')
 
         const rawServerFiles = generatorConfig.rawServerFiles ?? []

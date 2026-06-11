@@ -53,10 +53,16 @@ export function createApiClientFiles(exportedFunctionsMetadata = getExportedFunc
         const destDir = generatedClientRootPath
         const restFunctionStubs = exportedFunctionsMetadata.filter((stub) => stub.hasRestMarker)
 
-        const serverFileNames = generatorConfig.servers ?? []
+        const servers = generatorConfig.servers ?? []
 
-        for (const serverFileName of serverFileNames) {
-            const relativeServerFile = getRelativePathFromSrcDir(path.join(appRootPath, serverFileName), srcServerRootPath)
+        for (const serverConfig of servers) {
+            const serverSrc = serverConfig?.src
+
+            if (typeof serverSrc !== 'string' || serverSrc.length === 0) {
+                throw new Error(`Invalid server entry in config: ${JSON.stringify(serverConfig)}`)
+            }
+
+            const relativeServerFile = getRelativePathFromSrcDir(path.join(appRootPath, serverSrc), srcServerRootPath)
             const apiClientsFileName = `${relativeServerFile.replace('.ts', '')}-client.js`
             const clientFilePath = path.join(destDir, apiClientsFileName)
             const clientFileDir = path.dirname(clientFilePath)
@@ -83,6 +89,18 @@ export function addApiClientImports() {
     try {
         const destDir = generatedClientRootPath
         const jsClients = generatorConfig.jsClients ?? []
+        const servers = generatorConfig.servers ?? []
+        const serverNamespaceBySrc = {}
+
+        // rawServerFiles are server-side only and are not exposed as client API files
+        for (const serverConfig of servers) {
+            if (typeof serverConfig?.src !== 'string' || typeof serverConfig?.namespace !== 'string') {
+                throw new Error(`Invalid server entry in config: ${JSON.stringify(serverConfig)}`)
+            }
+
+            const relativeServerFile = getRelativePathFromSrcDir(path.join(appRootPath, serverConfig.src), srcServerRootPath)
+            serverNamespaceBySrc[relativeServerFile] = serverConfig.namespace
+        }
 
         for (const clientFileName of jsClients) {
             if (typeof clientFileName !== 'string' || clientFileName.length === 0) {
@@ -96,9 +114,15 @@ export function addApiClientImports() {
             }
 
             const sourceClientContent = fs.readFileSync(copiedClientPath, 'utf8')
-            const serverImportRegex = /^\s*\/\/\s*@server-import\s+([^\s]+)\s+as\s+([A-Za-z_$][\w$]*)\s*$/gm
+            const serverImportRegex = /^\s*\/\/\s*@server-import\s+([^\s]+)\s*$/gm
             const importLines = [...sourceClientContent.matchAll(serverImportRegex)]
-                .map(([, serverFileName, alias]) => `import * as ${alias} from './${serverFileName.replace('.ts', '')}-client.js'`)
+                .map(([, serverFileName]) => {
+                    const serverNamespace = serverNamespaceBySrc[serverFileName]
+                    if (!serverNamespace) {
+                        throw new Error(`Server '${serverFileName}' not found in config`)
+                    }
+                    return `import * as ${serverNamespace} from './${serverFileName.replace('.ts', '')}-client.js'`
+                })
 
             const contentWithoutMarkers = sourceClientContent.replace(serverImportRegex, '').trimStart()
             const importsBlock = importLines.join('\n')

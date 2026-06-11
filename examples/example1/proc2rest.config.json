@@ -1,6 +1,12 @@
 {
   "jsClients": ["src/client/index.js", "src/client/page-two.js"],
-  "servers": ["src/server/first/my-server.ts", "src/server/second/second-module.ts"],
+  "servers": [{
+    "src": "src/server/first/my-server.ts",
+    "namespace": "myServer"
+  }, {
+    "src": "src/server/second/pathtest/second-module.ts",
+    "namespace": "secondModule"
+  }],
   "rawServerFiles": ["src/server/my-server-raw.ts"],
   "apiUrl": "http://localhost:3000",
   "cors": {

@@ -1,5 +1,4 @@
-// @server-import first/my-server.ts as myServer
-// @server-import my-server-raw.ts as myServerRaw
+// @server-import first/my-server.ts
 
 const btn = document.getElementById('btn')
 
