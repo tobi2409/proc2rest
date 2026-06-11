@@ -257,6 +257,7 @@ Or inspect in browser DevTools → Network → binary request body.
 
 ### High Priority
 - **Custom express-routes-file template in config**: Allow overriding the main server file template (e.g., to initialize an HTTPS server, Logging, add custom middleware setup, or change the app bootstrap)
+- **HTTP error code propagation**: Allow server functions to return HTTP error codes (e.g. via a custom error class) that get automatically transferred to the Express response status code
 - **Unit tests for the generator**: Test metadata extraction, HTTP method resolution, and code generation output
 
 ### Medium Priority

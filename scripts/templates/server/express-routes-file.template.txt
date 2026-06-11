@@ -15,6 +15,9 @@ const port = Number(process.env.PORT ?? 3000)
 
 app.listen(port, () => {
 	console.log(`Generated server listening on port ${port}`)
+}).on('error', (error) => {
+	console.error(`Failed to start server on port ${port}:`, error.message)
+	process.exit(1)
 })
 
 export default app

@@ -1,22 +1,21 @@
 import * as fs from 'fs'
 import * as path from 'path'
 
-export function copyDirectoryRecursive(sourceDir, destDir) {
+export function copyDirectoryRecursive(sourceDir, destDir, { preserveEntries = [] } = {}) {
     try {
         const normalizedDestDir = path.resolve(destDir)
 
-        // Remove destination if it exists
-        if (fs.existsSync(destDir)) {
-            fs.rmSync(destDir, { recursive: true, force: true })
-        }
-
-        // Create destination directory
+        // Create destination directory if it doesn't exist
         fs.mkdirSync(destDir, { recursive: true })
 
-        // Copy all files and subdirectories
-        const entries = fs.readdirSync(sourceDir, { withFileTypes: true })
+        // Remove existing destination entries except preserved ones (e.g. node_modules)
+        for (const entry of fs.readdirSync(destDir, { withFileTypes: true })) {
+            if (preserveEntries.includes(entry.name)) continue
+            fs.rmSync(path.join(destDir, entry.name), { recursive: true, force: true })
+        }
 
-        for (const entry of entries) {
+        // Copy all files and subdirectories from source
+        for (const entry of fs.readdirSync(sourceDir, { withFileTypes: true })) {
             const sourcePath = path.join(sourceDir, entry.name)
             const destPath = path.join(destDir, entry.name)
 
@@ -31,7 +30,7 @@ export function copyDirectoryRecursive(sourceDir, destDir) {
             }
 
             if (entry.isDirectory()) {
-                copyDirectoryRecursive(sourcePath, destPath)
+                copyDirectoryRecursive(sourcePath, destPath, { preserveEntries })
             } else {
                 fs.copyFileSync(sourcePath, destPath)
             }
@@ -47,7 +46,7 @@ export function copySourceTree(srcPath, destPath) {
             throw new Error(`Source directory not found: ${srcPath}`)
         }
 
-        copyDirectoryRecursive(srcPath, destPath)
+        copyDirectoryRecursive(srcPath, destPath, { preserveEntries: ['node_modules'] })
     } catch (error) {
         throw new Error(`Failed to copy source tree: ${error instanceof Error ? error.message : error}`)
     }
