@@ -12,6 +12,9 @@ const __dirname = path.dirname(__filename)
 
 const generatedTsConfigTemplatePath = path.resolve(__dirname, 'adapters/templates/config/generated-tsconfig.template.json')
 const generatedTsConfigTemplate = fs.readFileSync(generatedTsConfigTemplatePath, 'utf8')
+// Logger is adapter-independent, so the template is handled directly in generate-server.
+const loggerTemplatePath = path.resolve(__dirname, 'adapters/templates/server/logger.template.txt')
+const loggerTemplate = fs.readFileSync(loggerTemplatePath, 'utf8')
 
 const appRootPath = getAppRootPath()
 const srcServerRootPath = getSrcServerRootPath(appRootPath)
@@ -23,6 +26,7 @@ function generateRoutesFile(serverAdapter) {
     try {
         const destDir = generatedServerRootPath
         const destFilePath = path.join(destDir, 'express-routes.generated.ts')
+        const loggerFilePath = path.join(destDir, 'logger.generated.ts')
         const tsConfigPath = path.join(destDir, 'tsconfig.json')
 
         const importsLines = []
@@ -58,6 +62,7 @@ function generateRoutesFile(serverAdapter) {
         const fileContent = serverAdapter.createRoutesFileContent({ generatorConfig, importsBlock, rawCode, routesCode })
 
         fs.writeFileSync(destFilePath, fileContent, 'utf8')
+        fs.writeFileSync(loggerFilePath, loggerTemplate, 'utf8')
         fs.writeFileSync(tsConfigPath, generatedTsConfigTemplate, 'utf8')
     } catch (error) {
         console.error('Error generating routes file:', error instanceof Error ? error.message : error)
