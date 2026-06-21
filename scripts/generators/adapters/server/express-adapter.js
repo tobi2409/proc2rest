@@ -58,6 +58,7 @@ export function createExpressRoutesFileContent({ generatorConfig, importsBlock, 
     try {
         return routesFileTemplate
             .replaceAll('{{corsOptions}}', JSON.stringify(generatorConfig.cors ?? { origin: '*' }))
+            .replaceAll('{{rateLimitOptions}}', JSON.stringify(generatorConfig.rateLimit ?? {}))
             .replaceAll('{{importsLine}}', importsBlock)
             .replaceAll('{{rawCode}}', rawCode)
             .replaceAll('{{routesCode}}', routesCode)

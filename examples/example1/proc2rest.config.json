@@ -12,6 +12,12 @@
   "cors": {
     "origin": "*"
   },
+  "rateLimit": {
+    "windowMs": 900000,
+    "max": 100,
+    "standardHeaders": true,
+    "legacyHeaders": false
+  },
   "method-rules": {
     "GET": "^(get|list|find)",
     "POST": "^(create|add|insert)",
