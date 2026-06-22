@@ -88,6 +88,10 @@ export function createExpressRoutesFileContent({
                 JSON.stringify(generatorConfig.cors ?? { origin: "*" }),
             )
             .replaceAll(
+                "{{errorStatusCodes}}",
+                JSON.stringify(generatorConfig.errorStatusCodes ?? {}),
+            )
+            .replaceAll(
                 "{{rateLimitOptions}}",
                 JSON.stringify(generatorConfig.rateLimit ?? {}),
             )

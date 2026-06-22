@@ -1,4 +1,11 @@
-import { writeLog } from "../logger.ts";
+import { writeLog } from "../logger";
+
+class UnsupportedArgumentError extends Error {
+    constructor(message: string) {
+        super(message);
+        this.name = "UnsupportedArgumentError";
+    }
+}
 
 interface Person {
     name: string;
@@ -31,6 +38,7 @@ export function auth(_req: unknown, _res: unknown, next: () => void) {
 export function getPerson(name: string): Person[] {
     if (name === "log-error") {
         writeLog("ERROR", "Manual test error triggered in getPerson", { input: name });
+        throw new UnsupportedArgumentError("Manual test error triggered in getPerson");
     }
 
     return people.filter((person) => person.name === name);

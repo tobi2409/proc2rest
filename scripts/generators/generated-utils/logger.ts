@@ -26,12 +26,10 @@ export function writeLog(
         console.log(line);
     }
 
-    try {
-        fs.appendFileSync(logFilePath, `${line}\n`, "utf8");
-    } catch (error) {
+    fs.promises.appendFile(logFilePath, `${line}\n`, "utf8").catch((error) => {
         console.error(
             "Failed to write log file entry:",
             error instanceof Error ? error.message : error,
         );
-    }
+    });
 }

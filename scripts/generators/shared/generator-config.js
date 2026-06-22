@@ -6,6 +6,7 @@ const defaultConfig = {
     cors: {
         origin: "*",
     },
+    errorStatusCodes: {},
 };
 
 const generatorConfigCache = new Map();

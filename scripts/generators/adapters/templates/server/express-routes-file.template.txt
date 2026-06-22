@@ -6,6 +6,8 @@ import { decode, encode } from '@msgpack/msgpack'
 import { writeLog } from './logger'
 {{importsLine}}
 
+const errorStatusCodes = {{errorStatusCodes}}
+
 const app = express()
 app.use(cors({{corsOptions}}))
 app.use(rateLimit({{rateLimitOptions}}))
