@@ -1,15 +1,15 @@
 app.{{expressMethod}}('/api/{{serverAlias}}/{{functionName}}', [{{bodyParserMiddleware}}{{middlewareFunctionNames}}], async (req: Request, res: Response) => {
-  try {
-    const args = {{argsExpression}}
+    try {
+        const args = {{argsExpression}}
 
-    {{missingParamsBlock}}
+        {{missingParamsBlock}}
 
-    const result = await Promise.resolve({{functionCall}})
-    writeLog('INFO', 'Request handled successfully', { method: req.method, path: req.path })
-    {{sendResultExpression}}
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-    writeLog('ERROR', 'Route execution failed', { method: req.method, path: req.path, error: errorMessage })
-    res.status(500).json({ error: errorMessage })
-  }
+        const result = await Promise.resolve({{functionCall}})
+        writeLog('INFO', 'Request handled successfully', { method: req.method, path: req.path })
+        {{sendResultExpression}}
+    } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+        writeLog('ERROR', 'Route execution failed', { method: req.method, path: req.path, error: errorMessage })
+        res.status(500).json({ error: errorMessage })
+    }
 })

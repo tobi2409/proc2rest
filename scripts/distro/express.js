@@ -1,9 +1,12 @@
-import { runServerGenerator } from '../generators/generate-server.js'
-import { createExpressRouteBody, createExpressRoutesFileContent } from '../generators/adapters/server/express-adapter.js'
+import { runServerGenerator } from "../generators/generate-server.js";
+import {
+    createExpressRouteBody,
+    createExpressRoutesFileContent,
+} from "../generators/adapters/server/express-adapter.js";
 
 const expressAdapter = {
     createRouteBody: createExpressRouteBody,
-    createRoutesFileContent: createExpressRoutesFileContent
-}
+    createRoutesFileContent: createExpressRoutesFileContent,
+};
 
-runServerGenerator(expressAdapter)
+runServerGenerator(expressAdapter);

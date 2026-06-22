@@ -1,40 +1,43 @@
 {
-  "jsClients": ["src/client/index.js", "src/client/page-two.js"],
-  "servers": [{
-    "src": "src/server/first/my-server.ts",
-    "namespace": "myServer"
-  }, {
-    "src": "src/server/second/pathtest/second-module.ts",
-    "namespace": "secondModule"
-  }],
-  "rawServerFiles": ["src/server/my-server-raw.ts"],
-  "apiUrl": "http://localhost:3000",
-  "cors": {
-    "origin": "*"
-  },
-  "rateLimit": {
-    "windowMs": 900000,
-    "max": 100,
-    "standardHeaders": true,
-    "legacyHeaders": false
-  },
-  "method-rules": {
-    "GET": "^(get|list|find)",
-    "POST": "^(create|add|insert)",
-    "PATCH": "^(update|set|patch)",
-    "DELETE": "^(delete|remove)"
-  },
-  "method-rules-custom-functions": {
-    "getBinDataInfo": "POST"
-  },
-  "binaryTypes": [
-    "ArrayBuffer",
-    "Uint8Array",
-    "Uint8Array<ArrayBufferLike>",
-    "Buffer",
-    "Blob",
-    "ImageData",
-    "File",
-    "ReverseResult"
-  ]
+    "jsClients": ["src/client/index.js", "src/client/page-two.js"],
+    "servers": [
+        {
+            "src": "src/server/first/my-server.ts",
+            "namespace": "myServer"
+        },
+        {
+            "src": "src/server/second/pathtest/second-module.ts",
+            "namespace": "secondModule"
+        }
+    ],
+    "rawServerFiles": ["src/server/my-server-raw.ts"],
+    "apiUrl": "http://localhost:3000",
+    "cors": {
+        "origin": "*"
+    },
+    "rateLimit": {
+        "windowMs": 900000,
+        "max": 100,
+        "standardHeaders": true,
+        "legacyHeaders": false
+    },
+    "method-rules": {
+        "GET": "^(get|list|find)",
+        "POST": "^(create|add|insert)",
+        "PATCH": "^(update|set|patch)",
+        "DELETE": "^(delete|remove)"
+    },
+    "method-rules-custom-functions": {
+        "getBinDataInfo": "POST"
+    },
+    "binaryTypes": [
+        "ArrayBuffer",
+        "Uint8Array",
+        "Uint8Array<ArrayBufferLike>",
+        "Buffer",
+        "Blob",
+        "ImageData",
+        "File",
+        "ReverseResult"
+    ]
 }

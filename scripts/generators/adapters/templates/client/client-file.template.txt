@@ -5,49 +5,49 @@ const MSGPACK_CONTENT_TYPE = 'application/msgpack'
 let msgPackModulePromise
 
 async function getMsgPackModule() {
-  if (!msgPackModulePromise) {
-    msgPackModulePromise = import('https://cdn.jsdelivr.net/npm/@msgpack/msgpack/+esm')
-  }
+    if (!msgPackModulePromise) {
+        msgPackModulePromise = import('https://cdn.jsdelivr.net/npm/@msgpack/msgpack/+esm')
+    }
 
-  return msgPackModulePromise
+    return msgPackModulePromise
 }
 
 async function request(path, method, params = {}, contentType = 'application/json', accept = 'application/json') {
-  const isGet = method === 'GET'
-  const isMsgPack = contentType === MSGPACK_CONTENT_TYPE
+    const isGet = method === 'GET'
+    const isMsgPack = contentType === MSGPACK_CONTENT_TYPE
 
-  const queryString = new URLSearchParams(
-    Object.entries(params ?? {}).filter(([, value]) => value !== undefined).map(([key, value]) => [key, String(value)])
-  ).toString()
-  const url = isGet
-    ? `${API_BASE_URL}${path}${queryString ? `?${queryString}` : ''}`
-    : `${API_BASE_URL}${path}`
+    const queryString = new URLSearchParams(
+        Object.entries(params ?? {}).filter(([, value]) => value !== undefined).map(([key, value]) => [key, String(value)])
+    ).toString()
+    const url = isGet
+        ? `${API_BASE_URL}${path}${queryString ? `?${queryString}` : ''}`
+        : `${API_BASE_URL}${path}`
 
-  const response = await fetch(url, {
-    method,
-    headers: isGet
-      ? { Accept: accept }
-      : {
-          Accept: accept,
-          'Content-Type': contentType
-        },
-    body: isGet
-      ? undefined
-      : isMsgPack
-        ? (await getMsgPackModule()).encode(params)
-        : JSON.stringify(params)
-  })
+    const response = await fetch(url, {
+        method,
+        headers: isGet
+            ? { Accept: accept }
+            : {
+                Accept: accept,
+                'Content-Type': contentType
+            },
+        body: isGet
+            ? undefined
+            : isMsgPack
+                ? (await getMsgPackModule()).encode(params)
+                : JSON.stringify(params)
+    })
 
-  const responseContentType = response.headers.get('content-type') ?? ''
-  const payload = responseContentType.includes(MSGPACK_CONTENT_TYPE)
-    ? (await getMsgPackModule()).decode(new Uint8Array(await response.arrayBuffer()))
-    : await response.json()
+    const responseContentType = response.headers.get('content-type') ?? ''
+    const payload = responseContentType.includes(MSGPACK_CONTENT_TYPE)
+        ? (await getMsgPackModule()).decode(new Uint8Array(await response.arrayBuffer()))
+        : await response.json()
 
-  if (!response.ok) {
-    throw new Error(payload?.error ?? `Request failed with status ${response.status}`)
-  }
+    if (!response.ok) {
+        throw new Error(payload?.error ?? `Request failed with status ${response.status}`)
+    }
 
-  return payload.result
+    return payload.result
 }
 
 {{functionsBlock}}

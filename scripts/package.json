@@ -1,0 +1,18 @@
+{
+    "name": "proc2rest",
+    "version": "1.0.0",
+    "description": "",
+    "license": "ISC",
+    "author": "",
+    "type": "module",
+    "scripts": {
+        "generate-server": "node distro/express.js --appPath=${npm_config_apppath:-../examples/example1} --srcServerDir=${npm_config_srcserverdir:-src/server} --generatedServerDir=${npm_config_generatedserverdir:-generated/server} --configPath=${npm_config_configpath:-proc2rest.config.json}",
+        "generate-client": "node distro/fetch.js --appPath=${npm_config_apppath:-../examples/example1} --srcClientDir=${npm_config_srcclientdir:-src/client} --generatedClientDir=${npm_config_generatedclientdir:-generated/client} --configPath=${npm_config_configpath:-proc2rest.config.json}",
+        "generate": "node distro/express-fetch.js --appPath=${npm_config_apppath:-../examples/example1} --srcServerDir=${npm_config_srcserverdir:-src/server} --generatedServerDir=${npm_config_generatedserverdir:-generated/server} --srcClientDir=${npm_config_srcclientdir:-src/client} --generatedClientDir=${npm_config_generatedclientdir:-generated/client} --configPath=${npm_config_configpath:-proc2rest.config.json}",
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "dependencies": {},
+    "devDependencies": {
+        "ts-morph": "^25.0.0"
+    }
+}
