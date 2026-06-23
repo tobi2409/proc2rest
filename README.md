@@ -10,11 +10,12 @@ A code generator that converts TypeScript RPC functions into REST APIs with auto
 
 ## Key Features
 
-- **Automatic REST Endpoint Generation**: Exports from TypeScript files become REST endpoints
+- **Automatic REST Endpoint Generation**: Exported functions marked with `@rest` become REST endpoints
 - **Binary Data Support**: Type-aware detection of binary parameters (Uint8Array, ArrayBuffer, Blob, etc.)
 - **MessagePack Transport**: Efficient binary serialization for endpoints with binary parameters
 - **ES Module Clients**: Auto-generated JS clients as native ES modules
 - **CORS & Configuration**: Centralized config via `proc2rest.config.json`
+- **Handlebars-based Templates**: Stable code generation via adapter-owned templates
 
 ## Configuration
 
@@ -22,13 +23,31 @@ Create `proc2rest.config.json` in your project root:
 
 ```json
 {
-  "clients": [
-    { "filename": "index.html", "servers": [] },
-    { "filename": "index.js", "servers": ["my-server.ts"] }
+  "jsClients": ["src/client/index.js"],
+  "servers": [
+    { "src": "src/server/first/my-server.ts", "namespace": "myServer" }
   ],
-  "servers": ["my-server.ts"],
+  "rawServerFiles": ["src/server/my-server-raw.ts"],
   "apiUrl": "http://localhost:3000",
   "cors": { "origin": "*" },
+  "rateLimit": {
+    "windowMs": 900000,
+    "max": 100,
+    "standardHeaders": true,
+    "legacyHeaders": false
+  },
+  "errorStatusCodes": {
+    "UnsupportedArgumentError": 422
+  },
+  "method-rules": {
+    "GET": "^(get|list|find)",
+    "POST": "^(create|add|insert)",
+    "PATCH": "^(update|set|patch)",
+    "DELETE": "^(delete|remove)"
+  },
+  "method-rules-custom-functions": {
+    "getBinDataInfo": "POST"
+  },
   "binaryTypes": [
     "ArrayBuffer",
     "Uint8Array",
@@ -40,12 +59,17 @@ Create `proc2rest.config.json` in your project root:
 ```
 
 **Config Fields:**
-- `clients`: Array of client files. Each entry:
-  - `filename`: Source file path (`.html`, `.js`, etc.)
-  - `servers`: List of server files to generate clients for (only for `.js` files)
-- `servers`: Array of server files to generate routes from
+- `jsClients`: JS client source files that should receive `@server-import` injection
+- `servers`: Array of server descriptors with:
+  - `src`: server source path
+  - `namespace`: import namespace used for generated routes and clients
+- `rawServerFiles`: extra server files to inline into `routes.generated.ts`
 - `apiUrl`: Base URL for API requests (default: `http://localhost:3000`)
 - `cors`: CORS options for Express
+- `rateLimit`: Options passed to `express-rate-limit`
+- `errorStatusCodes`: map from error class name to HTTP status code
+- `method-rules`: regex map for method resolution by function name
+- `method-rules-custom-functions`: exact function name overrides for HTTP method
 - `binaryTypes`: Type names considered binary (matched against TS types)
 
 ## Setup
@@ -67,10 +91,13 @@ interface Person {
   age: number
 }
 
+// @rest
 export function getPerson(name: string): Person {
   return { name, age: 30 }
 }
 
+// @rest
+// @middleware(auth)
 export function uploadFile(filename: string, data: Uint8Array): string {
   return `${filename}: ${data.byteLength} bytes`
 }
@@ -79,24 +106,27 @@ export function uploadFile(filename: string, data: Uint8Array): string {
 ### 3. Generate Code
 
 ```bash
-npm run generate --appPath=../examples/example1 --generatedServerDir=generated/server --generatedClientDir=generated/client --configPath=proc2rest.config.json
+cd scripts
+npm run generate --appPath=../examples/example1 --srcServerDir=src/server --generatedServerDir=generated/srv --srcClientDir=src/client --generatedClientDir=generated/cl
 ```
 
-This creates:
-- `generated/server/routes.generated.ts` - Express routes
-- `generated/server/package.json` - Server dependencies
-- `generated/client/my-server-client.js` - API client module
-- `generated/client/index.js` - Updated with imports (from `index.js` config)
+This creates (u. a.):
+- `examples/example1/generated/srv/routes.generated.ts` - Express routes
+- `examples/example1/generated/srv/logger.ts` - Shared logger utility
+- copies of server source files from `src/server/**` into `generated/srv/**`
+- generated API clients per configured server, e.g. `generated/cl/first/my-server-client.js`
+- copied JS client source files from `src/client/**` into `generated/cl/**`
+- injected imports in copied JS clients via `// @server-import <server-file.ts>` markers
 
 ### 4. Start Server
 
 ```bash
-cd generated/server
+cd ../examples/example1/generated/srv
 npm install
 npm start
 ```
 
-The server runs on port 3000 (or `$PORT` env var).
+The generated Express app listens on port 3000 by default (or `$PORT`).
 
 ### 5. Use Client in HTML
 
@@ -106,10 +136,11 @@ The server runs on port 3000 (or `$PORT` env var).
 <button id="btn">Get Person</button>
 ```
 
-`index.js` (auto-updated by generator):
+`src/client/index.js` (source, with `@server-import` marker):
 ```javascript
-import * as myServerClient from './my-server-client.js'
-const { getPerson } = myServerClient
+// @server-import first/my-server.ts
+
+const { getPerson } = myServer
 
 document.getElementById('btn').addEventListener('click', async () => {
   const person = await getPerson('Jane Doe')
@@ -136,107 +167,97 @@ Examples: `getPerson` → `GET`, `addPerson` → `POST`, `deleteUser` → `DELET
 ### Server Generation
 
 1. Parser (`exported-functions-metadata.js`) uses `ts-morph` to extract function signatures
-2. HTTP method is resolved from the function name (see above)
-3. Detects parameter types against `binaryTypes` config
-4. Generates appropriate middleware:
-   - `express.json()` for JSON endpoints
-   - `express.raw({ type: 'application/msgpack' })` for binary endpoints
-4. Routes are created in `routes.generated.ts`
+2. Only exported functions marked with `@rest` are mapped to routes
+3. HTTP method is resolved from the function name (or custom overrides)
+4. `@middleware(nameA, nameB)` markers are collected per route
+5. Detects parameter types against `binaryTypes` config
+6. Generates appropriate middleware:
+  - `express.json()` for JSON endpoints
+  - `express.raw({ type: 'application/msgpack' })` for binary endpoints
+7. Routes are created in `routes.generated.ts`
 
 ### Client Generation
 
-1. Extracts all exported functions from server files
-2. Creates `{serverName}-client.js` with ESM exports
+1. Uses metadata from configured `servers`
+2. Creates `<server-file>-client.js` files with ESM exports
 3. Each function becomes an async API call:
-   - JSON endpoints: `JSON.stringify()` request body
-   - Binary endpoints: `MessagePack.encode()` request body
-4. Injects `import` statements into client JS files
+  - JSON endpoints: `JSON.stringify()` request body
+  - Binary endpoints: `MessagePack.encode()` request body
+4. Injects imports into configured `jsClients` from `// @server-import ...` markers
+
+### Templates
+
+- Generation uses Handlebars templates in adapter folders
+- `{{...}}` for escaped values, `{{{...}}}` for raw code insertion
 
 ### Transport Formats
 
 **JSON (default):**
 ```javascript
-await request('/api/getPerson', 'GET', { name: 'John' }, 'application/json')
+await request('/api/myServer/getPerson', 'GET', { name: 'John' }, 'application/json')
 ```
 
 **MessagePack (for binary params):**
 ```javascript
 const data = new Uint8Array([1, 2, 3])
-await request('/api/uploadFile', 'POST', { filename: 'test', data }, 'application/msgpack')
+await request('/api/myServer/uploadFile', 'POST', { filename: 'test', data }, 'application/msgpack')
 ```
 
 Response handling is automatic—the client detects the response `content-type` and decodes accordingly.
 
-## File Upload Example
+## `@server-import` Marker
 
-### Server
-
-```typescript
-export function processFile(filename: string, data: Uint8Array): number {
-  return data.byteLength
-}
-```
-
-### Client HTML
-
-```html
-<input type="file" id="fileInput" />
-<button id="uploadBtn">Upload</button>
-```
-
-### Client JS
+In JS client files under `src/client`, add markers like:
 
 ```javascript
-import { processFile } from './my-server-client.js'
-
-document.getElementById('uploadBtn').addEventListener('click', async () => {
-  const file = document.getElementById('fileInput').files[0]
-  const uint8Array = new Uint8Array(await file.arrayBuffer())
-  
-  const result = await processFile(file.name, uint8Array)
-  console.log(`File processed: ${result} bytes`)
-})
+// @server-import first/my-server.ts
 ```
+
+During generation, proc2rest replaces these markers with proper client imports.
 
 ## Project Structure
 
 ```
 proc2rest/
 ├── scripts/
-│   ├── generate-server.js          # Server generator
-│   ├── generate-client.js          # Client generator
-│   ├── shared/
-│   │   ├── exported-functions-metadata.js  # TS parser
-│   │   ├── generator-config.js     # Config loader
-│   │   └── cli-args.js
-│   └── templates/
-│       ├── express-route.template.txt
-│       ├── express-routes-file.template.txt
-│       ├── client-file.template.txt
-│       ├── client-function.template.txt
-│       └── generated-package.template.json
+│   ├── distro/
+│   │   ├── express.js
+│   │   ├── fetch.js
+│   │   └── express-fetch.js
+│   ├── generators/
+│   │   ├── generate-server.js
+│   │   ├── generate-client.js
+│   │   ├── adapters/
+│   │   │   ├── server/express-adapter/
+│   │   │   └── client/fetch-adapter/
+│   │   └── shared/
+│   │       ├── exported-functions-metadata.js
+│   │       ├── generator-config.js
+│   │       └── cli-args.js
+│   └── package.json
 └── examples/
-    └── example1/
-        ├── proc2rest.config.json
-        ├── my-server.ts
-        ├── index.html
-        ├── index.js
-        └── generated/              # Auto-generated
+   └── example1/
+      ├── proc2rest.config.json
+      ├── src/
+      │   ├── server/
+      │   └── client/
+      └── generated/
 ```
 
 ## Development
 
-To regenerate after changes to server functions:
+To regenerate after changes to server/client files:
 
 ```bash
-cd proc2rest/scripts
-npm run generate --appPath=../examples/example1 --generatedServerDir=generated/server --generatedClientDir=generated/client --configPath=proc2rest.config.json
+cd scripts
+npm run generate --appPath=../examples/example1 --srcServerDir=src/server --generatedServerDir=generated/srv --srcClientDir=src/client --generatedClientDir=generated/cl
 ```
 
-Then restart the server:
+To run the generated server:
 
 ```bash
-cd ../examples/example1/generated/server
+cd ../examples/example1/generated/srv
+npm install
 npm start
 ```
 
@@ -257,6 +278,8 @@ Or inspect in browser DevTools → Network → binary request body.
 
 ### High Priority
 - **Unit tests for the generator**: Test metadata extraction, HTTP method resolution, and code generation output
+- **HTTPS support**: Allow configuring an HTTPS server (cert/key paths via config or CLI) in the generated server bootstrap
+- **Additional Express.js security mechanisms**: Support for `helmet`, stricter CORS policies, request size limits, and other hardening options via `proc2rest.config.json`
 
 ### Medium Priority
 - **Filename patterns in config**: Support glob patterns like `*.server.ts` instead of listing individual files
