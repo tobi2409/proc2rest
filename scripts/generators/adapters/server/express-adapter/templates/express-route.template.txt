@@ -1,12 +1,12 @@
-app.{{expressMethod}}('/api/{{serverAlias}}/{{functionName}}', [{{bodyParserMiddleware}}{{middlewareFunctionNames}}], async (req: Request, res: Response) => {
+app.{{{expressMethod}}}('/api/{{{serverAlias}}}/{{{functionName}}}', [{{#if isGet}}(req, _res, next) => next(){{else}}{{#if hasBinaryParams}}express.raw({ type: 'application/msgpack' }){{else}}express.json(){{/if}}{{/if}}{{{middlewareFunctionNames}}}], async (req: Request, res: Response) => {
     try {
-        const args = {{argsExpression}}
+        const args = {{#if isGet}}req.query ?? {}{{else}}{{#if hasBinaryParams}}decode(req.body) as Record<string, unknown>{{else}}req.body ?? {}{{/if}}{{/if}}
 
-        {{missingParamsBlock}}
+        {{{missingParamsBlock}}}
 
-        const result = await Promise.resolve({{functionCall}})
+        const result = await Promise.resolve({{{functionCall}}})
         await writeLog('INFO', 'Request handled successfully', { method: req.method, path: req.path })
-        {{sendResultExpression}}
+        {{#if returnIsBinary}}res.set('Content-Type', 'application/msgpack').send(Buffer.from(encode({ result }))){{else}}res.json({ result }){{/if}}
     } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error'
         const statusCode = error instanceof Error ? errorStatusCodes[error.constructor.name] : undefined

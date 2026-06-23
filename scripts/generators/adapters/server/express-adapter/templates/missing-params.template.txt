@@ -1,4 +1,4 @@
-const missingParams = [{{paramList}}].filter((name) => !(name in args))
+const missingParams = [{{{paramList}}}].filter((name) => !(name in args))
 
 if (missingParams.length > 0) {
     await writeLog('WARN', 'Missing required params', { method: req.method, path: req.path, missingParams })

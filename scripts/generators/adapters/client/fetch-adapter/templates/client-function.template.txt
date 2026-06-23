@@ -1,3 +1,3 @@
-export async function {{functionName}}({{signatureParams}}) {
-    return request('{{path}}', '{{httpMethod}}', {{paramsObject}}, '{{contentType}}', '{{accept}}')
+export async function {{{functionName}}}({{{signatureParams}}}) {
+    return request('{{{path}}}', '{{{httpMethod}}}', {{#if hasParams}}{ {{#each paramNames}}{{{this}}}{{#unless @last}}, {{/unless}}{{/each}} }{{else}}{}{{/if}}, '{{#if hasBinaryParams}}application/msgpack{{else}}application/json{{/if}}', '{{#if returnIsBinary}}application/msgpack{{else}}application/json{{/if}}')
 }
