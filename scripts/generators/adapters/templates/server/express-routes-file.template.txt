@@ -18,10 +18,10 @@ app.use(rateLimit({{rateLimitOptions}}))
 
 const port = Number(process.env.PORT ?? 3000)
 
-app.listen(port, () => {
-    writeLog('INFO', `Generated server listening on port ${port}`)
-}).on('error', (error) => {
-    writeLog('ERROR', `Failed to start server on port ${port}`, { error: error.message })
+app.listen(port, async () => {
+    await writeLog('INFO', `Generated server listening on port ${port}`)
+}).on('error', async (error) => {
+    await writeLog('ERROR', `Failed to start server on port ${port}`, { error: error.message })
     process.exit(1)
 })
 

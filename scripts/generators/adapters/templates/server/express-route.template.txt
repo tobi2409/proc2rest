@@ -5,13 +5,13 @@ app.{{expressMethod}}('/api/{{serverAlias}}/{{functionName}}', [{{bodyParserMidd
         {{missingParamsBlock}}
 
         const result = await Promise.resolve({{functionCall}})
-        writeLog('INFO', 'Request handled successfully', { method: req.method, path: req.path })
+        await writeLog('INFO', 'Request handled successfully', { method: req.method, path: req.path })
         {{sendResultExpression}}
     } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error'
         const statusCode = error instanceof Error ? errorStatusCodes[error.constructor.name] : undefined
         const httpStatus = typeof statusCode === 'number' ? statusCode : 500
-        writeLog('ERROR', 'Route execution failed', { method: req.method, path: req.path, error: errorMessage })
+        await writeLog('ERROR', 'Route execution failed', { method: req.method, path: req.path, error: errorMessage })
         res.status(httpStatus).json({ error: errorMessage })
     }
 })

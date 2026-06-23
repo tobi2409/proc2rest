@@ -35,9 +35,9 @@ export function auth(_req: unknown, _res: unknown, next: () => void) {
 
 // @rest
 // @middleware(auth)
-export function getPerson(name: string): Person[] {
+export async function getPerson(name: string): Promise<Person[]> {
     if (name === "log-error") {
-        writeLog("ERROR", "Manual test error triggered in getPerson", { input: name });
+        await writeLog("ERROR", "Manual test error triggered in getPerson", { input: name });
         throw new UnsupportedArgumentError("Manual test error triggered in getPerson");
     }
 
@@ -45,9 +45,9 @@ export function getPerson(name: string): Person[] {
 }
 
 // @rest
-export function addPerson(person: Person): Person {
+export async function addPerson(person: Person): Promise<Person> {
     if (person.name === "log-error") {
-        writeLog("ERROR", "Manual test error triggered in addPerson", { input: person });
+        await writeLog("ERROR", "Manual test error triggered in addPerson", { input: person });
     }
 
     people.push(person);
@@ -55,9 +55,9 @@ export function addPerson(person: Person): Person {
 }
 
 // @rest
-export function add(a: number, b: number): number {
+export async function add(a: number, b: number): Promise<number> {
     if (a === 13 && b === 37) {
-        writeLog("ERROR", "Manual test error triggered in add", { a, b });
+        await writeLog("ERROR", "Manual test error triggered in add", { a, b });
     }
 
     return a + b;

@@ -7,7 +7,7 @@ const logsDir = path.resolve(process.cwd(), "logs");
 const logFilePath = path.join(logsDir, "server.log");
 fs.mkdirSync(logsDir, { recursive: true });
 
-export function writeLog(
+export async function writeLog(
     level: LogLevel,
     message: string,
     meta: Record<string, unknown> = {},
@@ -26,10 +26,12 @@ export function writeLog(
         console.log(line);
     }
 
-    fs.promises.appendFile(logFilePath, `${line}\n`, "utf8").catch((error) => {
+    try {
+        await fs.promises.appendFile(logFilePath, `${line}\n`, "utf8");
+    } catch (error) {
         console.error(
             "Failed to write log file entry:",
             error instanceof Error ? error.message : error,
         );
-    });
+    }
 }
