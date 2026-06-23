@@ -15,6 +15,7 @@ function hasRestMarker(fn) {
     const sourceText = fn.getSourceFile().getFullText();
     const commentRanges =
         ts.getLeadingCommentRanges(sourceText, fn.getPos()) ?? [];
+    // some(...) ist true, sobald mindestens ein Kommentar "@rest" enthält.
     return commentRanges.some((range) =>
         sourceText.slice(range.pos, range.end).includes("@rest"),
     );
@@ -39,7 +40,8 @@ function getMiddlewaresFromFunctionComments(fn) {
                     .map((middlewareName) =>
                         middlewareName.trim().replace(/^['"]|['"]$/g, ""),
                     )
-                    .filter(Boolean);
+                    // Entferne leere Strings nach trim() und quote-Entfernung
+                    .filter((name) => name.length > 0);
 
                 middlewareNames.push(...middlewareList);
             }
@@ -53,13 +55,15 @@ function getMiddlewaresFromFunctionComments(fn) {
     }
 }
 
-function getExportedFunctions(appRootPath) {
+export function getExportedFunctionsMetadata(appRootPath = getAppRootPath()) {
     try {
         const generatorConfig = getCachedGeneratorConfig(appRootPath);
         const servers = generatorConfig.servers ?? [];
         const binaryTypes = generatorConfig.binaryTypes ?? [];
-        const exportedFunctions = [];
-
+        const methodRules = generatorConfig["method-rules"] ?? undefined;
+        const customFunctions =
+            generatorConfig["method-rules-custom-functions"] ?? undefined;
+        const exportedFunctionsMetadata = [];
         const tsConfigPath = path.join(appRootPath, "tsconfig.json");
         const project = fs.existsSync(tsConfigPath)
             ? new Project({ tsConfigFilePath: tsConfigPath })
@@ -88,6 +92,7 @@ function getExportedFunctions(appRootPath) {
             );
 
             for (const fn of functions) {
+                const functionName = fn.getName() ?? "<anonymous>";
                 const hasRest = hasRestMarker(fn);
                 const returnType = fn.getReturnType().getText(fn);
                 const params = [];
@@ -116,13 +121,20 @@ function getExportedFunctions(appRootPath) {
                 }
 
                 const mixedParams = hasBinaryParams && hasJsonParams;
+                const httpMethod = resolveHttpMethod(
+                    functionName,
+                    methodRules,
+                    customFunctions,
+                );
 
-                exportedFunctions.push({
-                    name: fn.getName() ?? "<anonymous>",
+                exportedFunctionsMetadata.push({
+                    functionName,
                     serverFile: relativeServerFile,
                     serverNamespace,
                     isExported: fn.isExported(),
                     hasRestMarker: hasRest,
+                    path: `/api/${serverNamespace}/${functionName}`,
+                    httpMethod,
                     params,
                     hasBinaryParams,
                     hasJsonParams,
@@ -134,52 +146,10 @@ function getExportedFunctions(appRootPath) {
             }
         }
 
-        return exportedFunctions;
-    } catch (error) {
-        throw new Error(
-            `Failed to extract exported functions: ${error instanceof Error ? error.message : error}`,
-        );
-    }
-}
-
-export function getExportedFunctionsMetadata(appRootPath = getAppRootPath()) {
-    try {
-        const generatorConfig = getCachedGeneratorConfig(appRootPath);
-        const methodRules = generatorConfig["method-rules"] ?? undefined;
-        const customFunctions =
-            generatorConfig["method-rules-custom-functions"] ?? undefined;
-        const exportedFunctions = getExportedFunctions(appRootPath);
-        const exportedFunctionsMetadata = [];
-
-        for (const func of exportedFunctions) {
-            const httpMethod = resolveHttpMethod(
-                func.name,
-                methodRules,
-                customFunctions,
-            );
-
-            exportedFunctionsMetadata.push({
-                functionName: func.name,
-                serverFile: func.serverFile,
-                serverNamespace: func.serverNamespace,
-                isExported: func.isExported,
-                hasRestMarker: func.hasRestMarker,
-                path: `/api/${func.serverNamespace}/${func.name}`,
-                httpMethod,
-                params: func.params,
-                hasBinaryParams: func.hasBinaryParams,
-                hasJsonParams: func.hasJsonParams,
-                mixedParams: func.mixedParams,
-                returnType: func.returnType,
-                returnIsBinary: func.returnIsBinary,
-                middlewares: func.middlewares,
-            });
-        }
-
         return exportedFunctionsMetadata;
     } catch (error) {
         throw new Error(
-            `Failed to get exported functions metadata: ${error instanceof Error ? error.message : error}`,
+            `Failed to extract exported function metadata: ${error instanceof Error ? error.message : error}`,
         );
     }
 }

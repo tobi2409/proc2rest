@@ -18,18 +18,39 @@ const srcClientRootPath = getSrcClientRootPath(appRootPath);
 const srcServerRootPath = getSrcServerRootPath(appRootPath);
 const generatorConfig = getCachedGeneratorConfig(appRootPath);
 
+function getServerNamespaceBySrc(servers) {
+    const serverNamespaceBySrc = {};
+
+    for (const serverConfig of servers) {
+        if (
+            typeof serverConfig?.src !== "string" ||
+            typeof serverConfig?.namespace !== "string"
+        ) {
+            throw new Error(
+                `Invalid server entry in config: ${JSON.stringify(serverConfig)}`,
+            );
+        }
+
+        const relativeServerFile = getRelativePathFromSrcDir(
+            path.join(appRootPath, serverConfig.src),
+            srcServerRootPath,
+        );
+        serverNamespaceBySrc[relativeServerFile] = serverConfig.namespace;
+    }
+
+    return serverNamespaceBySrc;
+}
+
 function createApiClientFiles(
     clientAdapter,
     exportedFunctionsMetadata = getExportedFunctionsMetadata(appRootPath),
 ) {
     try {
         const destDir = generatedClientRootPath;
-        const restFunctionStubs = exportedFunctionsMetadata.filter(
-            (stub) => stub.hasRestMarker,
-        );
 
         const servers = generatorConfig.servers ?? [];
 
+        // generate client files for each server defined in the config
         for (const serverConfig of servers) {
             const serverSrc = serverConfig?.src;
 
@@ -47,18 +68,10 @@ function createApiClientFiles(
             const clientFilePath = path.join(destDir, apiClientsFileName);
             const clientFileDir = path.dirname(clientFilePath);
 
-            const clientRouteStubs = restFunctionStubs.filter(
-                (routeStub) => routeStub.serverFile === relativeServerFile,
-            );
-            const clientFunctionsBlock = clientRouteStubs
-                .map((routeStub) =>
-                    clientAdapter.createClientFunction(routeStub),
-                )
-                .join("\n\n");
-
             const clientApiFileContent = clientAdapter.createClientFileContent({
                 generatorConfig,
-                clientFunctionsBlock,
+                exportedFunctionsMetadata,
+                serverFile: relativeServerFile,
             });
 
             fs.mkdirSync(clientFileDir, { recursive: true });
@@ -73,29 +86,12 @@ function createApiClientFiles(
     }
 }
 
-export function addApiClientImports() {
+function addApiClientImports() {
     try {
         const destDir = generatedClientRootPath;
         const jsClients = generatorConfig.jsClients ?? [];
         const servers = generatorConfig.servers ?? [];
-        const serverNamespaceBySrc = {};
-
-        for (const serverConfig of servers) {
-            if (
-                typeof serverConfig?.src !== "string" ||
-                typeof serverConfig?.namespace !== "string"
-            ) {
-                throw new Error(
-                    `Invalid server entry in config: ${JSON.stringify(serverConfig)}`,
-                );
-            }
-
-            const relativeServerFile = getRelativePathFromSrcDir(
-                path.join(appRootPath, serverConfig.src),
-                srcServerRootPath,
-            );
-            serverNamespaceBySrc[relativeServerFile] = serverConfig.namespace;
-        }
+        const serverNamespaceBySrc = getServerNamespaceBySrc(servers);
 
         for (const clientFileName of jsClients) {
             if (

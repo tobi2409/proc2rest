@@ -7,12 +7,12 @@ const __dirname = path.dirname(__filename);
 
 const clientFileTemplatePath = path.resolve(
     __dirname,
-    "../templates/client/client-file.template.txt",
+    "templates/client-file.template.txt",
 );
 const clientFileTemplate = fs.readFileSync(clientFileTemplatePath, "utf8");
 const clientFunctionTemplatePath = path.resolve(
     __dirname,
-    "../templates/client/client-function.template.txt",
+    "templates/client-function.template.txt",
 );
 const clientFunctionTemplate = fs.readFileSync(
     clientFunctionTemplatePath,
@@ -49,9 +49,16 @@ export function createFetchClientFunction(routeStub) {
 
 export function createFetchClientFileContent({
     generatorConfig,
-    clientFunctionsBlock,
+    exportedFunctionsMetadata,
+    serverFile,
 }) {
     try {
+        const clientFunctionsBlock = (exportedFunctionsMetadata ?? [])
+            .filter((stub) => stub.hasRestMarker)
+            .filter((stub) => stub.serverFile === serverFile)
+            .map((routeStub) => createFetchClientFunction(routeStub))
+            .join("\n\n");
+
         return clientFileTemplate
             .replaceAll(
                 "{{apiBaseUrl}}",

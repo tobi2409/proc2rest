@@ -7,24 +7,24 @@ const __dirname = path.dirname(__filename);
 
 const routesFileTemplatePath = path.resolve(
     __dirname,
-    "../templates/server/express-routes-file.template.txt",
+    "templates/express-routes-file.template.txt",
 );
 const routesFileTemplate = fs.readFileSync(routesFileTemplatePath, "utf8");
 const routeTemplatePath = path.resolve(
     __dirname,
-    "../templates/server/express-route.template.txt",
+    "templates/express-route.template.txt",
 );
 const routeTemplate = fs.readFileSync(routeTemplatePath, "utf8");
 const missingParamsTemplatePath = path.resolve(
     __dirname,
-    "../templates/server/missing-params.template.txt",
+    "templates/missing-params.template.txt",
 );
 const missingParamsTemplate = fs.readFileSync(
     missingParamsTemplatePath,
     "utf8",
 );
 
-export function createExpressRouteBody(routeStub) {
+function createExpressRouteBody(routeStub) {
     try {
         const paramNames = routeStub.params.map((param) => param.name);
         const functionCall = `${routeStub.serverNamespace}.${routeStub.functionName}(${paramNames.map((name) => `args.${name}`).join(", ")})`;
@@ -79,9 +79,14 @@ export function createExpressRoutesFileContent({
     generatorConfig,
     importsBlock,
     rawCode,
-    routesCode,
+    exportedFunctionsMetadata,
 }) {
     try {
+        const routesCode = (exportedFunctionsMetadata ?? [])
+            .filter((stub) => stub.hasRestMarker)
+            .map((stub) => createExpressRouteBody(stub))
+            .join("\n\n");
+
         return routesFileTemplate
             .replaceAll(
                 "{{corsOptions}}",

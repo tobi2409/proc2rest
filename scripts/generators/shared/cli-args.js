@@ -9,6 +9,7 @@ function getCliArgValue(flagName) {
         }
 
         const withEquals = [...process.argv]
+            // reverse analog wie lastIndexOf: die letzte passende --flag=value-Angabe gewinnt.
             .reverse()
             .find((arg) => arg.startsWith(`${flagName}=`));
 

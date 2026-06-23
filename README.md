@@ -83,7 +83,7 @@ npm run generate --appPath=../examples/example1 --generatedServerDir=generated/s
 ```
 
 This creates:
-- `generated/server/express-routes.generated.ts` - Express routes
+- `generated/server/routes.generated.ts` - Express routes
 - `generated/server/package.json` - Server dependencies
 - `generated/client/my-server-client.js` - API client module
 - `generated/client/index.js` - Updated with imports (from `index.js` config)
@@ -141,7 +141,7 @@ Examples: `getPerson` → `GET`, `addPerson` → `POST`, `deleteUser` → `DELET
 4. Generates appropriate middleware:
    - `express.json()` for JSON endpoints
    - `express.raw({ type: 'application/msgpack' })` for binary endpoints
-4. Routes are created in `express-routes.generated.ts`
+4. Routes are created in `routes.generated.ts`
 
 ### Client Generation
 

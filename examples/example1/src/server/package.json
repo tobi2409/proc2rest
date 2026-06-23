@@ -3,7 +3,7 @@
     "private": true,
     "type": "module",
     "scripts": {
-        "start": "tsx express-routes.generated.ts"
+        "start": "tsx routes.generated.ts"
     },
     "dependencies": {
         "@msgpack/msgpack": "^3.0.0",

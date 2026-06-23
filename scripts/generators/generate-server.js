@@ -14,14 +14,6 @@ import { getRelativePathFromSrcDir } from "./shared/path-utils.js";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const generatedTsConfigTemplatePath = path.resolve(
-    __dirname,
-    "adapters/templates/config/generated-tsconfig.template.json",
-);
-const generatedTsConfigTemplate = fs.readFileSync(
-    generatedTsConfigTemplatePath,
-    "utf8",
-);
 // Logger is adapter-independent, so it's a shared utility that gets copied directly.
 const loggerSourcePath = path.resolve(__dirname, "generated-utils/logger.ts");
 
@@ -34,9 +26,8 @@ const generatorConfig = getCachedGeneratorConfig(appRootPath);
 function generateRoutesFile(serverAdapter) {
     try {
         const destDir = generatedServerRootPath;
-        const destFilePath = path.join(destDir, "express-routes.generated.ts");
+        const destFilePath = path.join(destDir, "routes.generated.ts");
         const loggerFilePath = path.join(destDir, "logger.ts");
-        const tsConfigPath = path.join(destDir, "tsconfig.json");
 
         const importsLines = [];
         const configuredServers = generatorConfig.servers ?? [];
@@ -57,10 +48,6 @@ function generateRoutesFile(serverAdapter) {
         }
 
         const importsBlock = importsLines.join("\n");
-        const routesCode = exportedFunctionsMetadata
-            .filter((stub) => stub.hasRestMarker)
-            .map((stub) => serverAdapter.createRouteBody(stub))
-            .join("\n\n");
 
         const rawServerFiles = generatorConfig.rawServerFiles ?? [];
         const rawCode = rawServerFiles
@@ -75,16 +62,17 @@ function generateRoutesFile(serverAdapter) {
             })
             .join("\n\n");
 
+        //TODO: remove rawServerFiles from generated
+
         const fileContent = serverAdapter.createRoutesFileContent({
             generatorConfig,
             importsBlock,
             rawCode,
-            routesCode,
+            exportedFunctionsMetadata,
         });
 
         fs.writeFileSync(destFilePath, fileContent, "utf8");
         fs.copyFileSync(loggerSourcePath, loggerFilePath);
-        fs.writeFileSync(tsConfigPath, generatedTsConfigTemplate, "utf8");
     } catch (error) {
         console.error(
             "Error generating routes file:",
