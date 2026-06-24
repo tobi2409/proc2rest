@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 import { runClientGenerator } from "../generators/generate-client.js"
 import {
     createFetchClientFileContent,

@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 import { runServerGenerator } from "../generators/generate-server.js";
 import { runClientGenerator } from "../generators/generate-client.js";
 import {

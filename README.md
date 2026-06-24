@@ -77,7 +77,6 @@ Create `proc2rest.config.json` in your project root:
 ### 1. Install Dependencies
 
 ```bash
-cd scripts
 npm install
 ```
 
@@ -106,8 +105,7 @@ export function uploadFile(filename: string, data: Uint8Array): string {
 ### 3. Generate Code
 
 ```bash
-cd scripts
-npm run generate --appPath=../examples/example1 --srcServerDir=src/server --generatedServerDir=generated/srv --srcClientDir=src/client --generatedClientDir=generated/cl
+npm run generate --appPath=examples/example1 --srcServerDir=src/server --generatedServerDir=generated/srv --srcClientDir=src/client --generatedClientDir=generated/cl
 ```
 
 This creates (u. a.):
@@ -121,7 +119,7 @@ This creates (u. a.):
 ### 4. Start Server
 
 ```bash
-cd ../examples/example1/generated/srv
+cd examples/example1/generated/srv
 npm install
 npm start
 ```
@@ -249,16 +247,28 @@ proc2rest/
 To regenerate after changes to server/client files:
 
 ```bash
-cd scripts
-npm run generate --appPath=../examples/example1 --srcServerDir=src/server --generatedServerDir=generated/srv --srcClientDir=src/client --generatedClientDir=generated/cl
+npm run generate --appPath=examples/example1 --srcServerDir=src/server --generatedServerDir=generated/srv --srcClientDir=src/client --generatedClientDir=generated/cl
 ```
 
 To run the generated server:
 
 ```bash
-cd ../examples/example1/generated/srv
+cd examples/example1/generated/srv
 npm install
 npm start
+```
+
+## VS Code Setup
+
+To prevent Live Server from reloading when server logs are written, add this to `.vscode/settings.json`:
+
+```json
+{
+    "liveServer.settings.ignoreFiles": [
+        "**/generated/srv/logs/**",
+        "**/*.log"
+    ]
+}
 ```
 
 ## Debugging MessagePack Requests

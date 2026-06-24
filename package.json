@@ -1,0 +1,58 @@
+{
+    "name": "proc2rest",
+    "version": "0.4.0",
+    "description": "Generate REST endpoints and JS clients from TypeScript RPC functions",
+    "license": "ISC",
+    "author": "",
+    "type": "module",
+    "main": "scripts/distro/express-fetch.js",
+    "bin": {
+        "proc2rest": "scripts/distro/express-fetch.js",
+        "proc2rest-server": "scripts/distro/express.js",
+        "proc2rest-client": "scripts/distro/fetch.js"
+    },
+    "files": [
+        "scripts/distro",
+        "scripts/generators",
+        "README.md",
+        "LICENSE*"
+    ],
+    "keywords": [
+        "codegen",
+        "typescript",
+        "express",
+        "expressjs",
+        "rest",
+        "rest-api",
+        "api",
+        "api-generator",
+        "client-generator",
+        "javascript-client",
+        "fetch",
+        "msgpack",
+        "messagepack",
+        "ts-morph",
+        "node",
+        "nodejs",
+        "npm-cli",
+        "automation",
+        "scaffolding",
+        "rpc"
+    ],
+    "engines": {
+        "node": ">=18"
+    },
+    "publishConfig": {
+        "access": "public"
+    },
+    "scripts": {
+        "generate-server": "node scripts/distro/express.js --appPath=${npm_config_apppath:-examples/example1} --srcServerDir=${npm_config_srcserverdir:-src/server} --generatedServerDir=${npm_config_generatedserverdir:-generated/srv} --configPath=${npm_config_configpath:-proc2rest.config.json}",
+        "generate-client": "node scripts/distro/fetch.js --appPath=${npm_config_apppath:-examples/example1} --srcClientDir=${npm_config_srcclientdir:-src/client} --generatedClientDir=${npm_config_generatedclientdir:-generated/cl} --configPath=${npm_config_configpath:-proc2rest.config.json}",
+        "generate": "node scripts/distro/express-fetch.js --appPath=${npm_config_apppath:-examples/example1} --srcServerDir=${npm_config_srcserverdir:-src/server} --generatedServerDir=${npm_config_generatedserverdir:-generated/srv} --srcClientDir=${npm_config_srcclientdir:-src/client} --generatedClientDir=${npm_config_generatedclientdir:-generated/cl} --configPath=${npm_config_configpath:-proc2rest.config.json}",
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "dependencies": {
+        "handlebars": "^4.7.9",
+        "ts-morph": "^25.0.0"
+    }
+}
