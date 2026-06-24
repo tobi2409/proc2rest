@@ -74,6 +74,61 @@ Create `proc2rest.config.json` in your project root:
 
 ## Setup
 
+### Use in your own project
+
+Install in your app project:
+
+```bash
+npm install --save-dev proc2rest
+```
+
+Then run via `npx` (or `npm exec`):
+
+```bash
+npx proc2rest
+```
+
+Or add a script in your app's `package.json`:
+
+```json
+{
+  "scripts": {
+    "generate-api": "proc2rest"
+  }
+}
+```
+
+Then run:
+
+```bash
+npm run generate-api
+```
+
+Note: local package binaries are available through `npx`/`npm run` and are located under `node_modules/.bin`.
+
+A complete example project is available on GitHub:
+https://github.com/tobi2409/proc2rest/tree/main/examples/example1
+
+Optional with explicit parameters:
+
+```bash
+npx proc2rest \
+  --appPath=. \
+  --srcServerDir=src/server \
+  --generatedServerDir=generated/srv \
+  --srcClientDir=src/client \
+  --generatedClientDir=generated/cl \
+  --configPath=proc2rest.config.json
+```
+
+Parameter overview:
+- `--appPath`: Root of your app project (default: `.`)
+- `--srcServerDir`: Source directory for server TS files (default: `src/server`)
+- `--generatedServerDir`: Output directory for generated server code (default: `generated/srv`)
+- `--srcClientDir`: Source directory for client JS files (default: `src/client`)
+- `--generatedClientDir`: Output directory for generated client code (default: `generated/cl`)
+- `--configPath`: Path to `proc2rest.config.json` (default: `<appPath>/proc2rest.config.json`)
+
 ### 1. Install Dependencies
 
 ```bash
