@@ -28,7 +28,7 @@ function getCliArgValue(flagName) {
 export function getAppRootPath() {
     try {
         const cliPath = getCliArgValue("--appPath");
-        const rawPath = cliPath ?? "../";
+        const rawPath = cliPath ?? "./";
 
         return path.resolve(rawPath);
     } catch (error) {
