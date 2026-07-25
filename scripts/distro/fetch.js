@@ -1,12 +1,10 @@
 #!/usr/bin/env node
 
-import { runClientGenerator } from "../generators/generate-client.js"
-import {
-    createFetchClientFileContent,
-} from "../generators/adapters/client/fetch-adapter/fetch-adapter.js"
+import { runClientGenerator } from '../generators/generate-client.js'
+import { createFetchClientFileContent } from '../generators/adapters/client/fetch-adapter/fetch-adapter.js'
 
 const fetchAdapter = {
-    createClientFileContent: createFetchClientFileContent,
-};
+    createClientFileContent: createFetchClientFileContent
+}
 
 runClientGenerator(fetchAdapter)

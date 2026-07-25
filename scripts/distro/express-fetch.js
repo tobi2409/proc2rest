@@ -1,21 +1,17 @@
 #!/usr/bin/env node
 
-import { runServerGenerator } from "../generators/generate-server.js";
-import { runClientGenerator } from "../generators/generate-client.js";
-import {
-    createExpressRoutesFileContent,
-} from "../generators/adapters/server/express-adapter/express-adapter.js";
-import {
-    createFetchClientFileContent,
-} from "../generators/adapters/client/fetch-adapter/fetch-adapter.js";
+import { runServerGenerator } from '../generators/generate-server.js'
+import { runClientGenerator } from '../generators/generate-client.js'
+import { createExpressRoutesFileContent } from '../generators/adapters/server/express-adapter/express-adapter.js'
+import { createFetchClientFileContent } from '../generators/adapters/client/fetch-adapter/fetch-adapter.js'
 
 const expressAdapter = {
-    createRoutesFileContent: createExpressRoutesFileContent,
-};
+    createRoutesFileContent: createExpressRoutesFileContent
+}
 
 const fetchAdapter = {
-    createClientFileContent: createFetchClientFileContent,
-};
+    createClientFileContent: createFetchClientFileContent
+}
 
-runServerGenerator(expressAdapter);
-runClientGenerator(fetchAdapter);
+runServerGenerator(expressAdapter)
+runClientGenerator(fetchAdapter)

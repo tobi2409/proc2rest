@@ -13,8 +13,14 @@
         <div>
             <label for="fileInput">Choose a file:</label>
             <input type="file" id="fileInput" />
-            <button id="btn3">Upload File</button>
+            <button id="btn3">Upload File (max 1MB)</button>
         </div>
+        <button id="btn6">
+            Restrictive CORS (should only run with origin http://localhost:5000)
+        </button>
+        <button id="btn7">
+            Custom Rate-Limit (should only run 1 request per 15 minutes)
+        </button>
 
         <a href="page-two.html">Go to Page Two</a>
 

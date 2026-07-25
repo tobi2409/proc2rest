@@ -1,6 +1,6 @@
 {
     "name": "@tobi2409/proc2rest",
-    "version": "0.4.1",
+    "version": "0.5.0",
     "description": "Generate REST endpoints and JS clients from TypeScript RPC functions",
     "license": "ISC",
     "author": "",
@@ -46,13 +46,10 @@
         "access": "public"
     },
     "scripts": {
-        "generate-server": "node scripts/distro/express.js --appPath=${npm_config_apppath:-examples/example1} --srcServerDir=${npm_config_srcserverdir:-src/server} --generatedServerDir=${npm_config_generatedserverdir:-generated/srv} --configPath=${npm_config_configpath:-proc2rest.config.json}",
-        "generate-client": "node scripts/distro/fetch.js --appPath=${npm_config_apppath:-examples/example1} --srcClientDir=${npm_config_srcclientdir:-src/client} --generatedClientDir=${npm_config_generatedclientdir:-generated/cl} --configPath=${npm_config_configpath:-proc2rest.config.json}",
-        "generate": "node scripts/distro/express-fetch.js --appPath=${npm_config_apppath:-examples/example1} --srcServerDir=${npm_config_srcserverdir:-src/server} --generatedServerDir=${npm_config_generatedserverdir:-generated/srv} --srcClientDir=${npm_config_srcclientdir:-src/client} --generatedClientDir=${npm_config_generatedclientdir:-generated/cl} --configPath=${npm_config_configpath:-proc2rest.config.json}",
         "test": "echo \"Error: no test specified\" && exit 1"
     },
     "dependencies": {
         "handlebars": "^4.7.9",
-        "ts-morph": "^25.0.0"
+        "ts-morph": "^28.0.0"
     }
 }

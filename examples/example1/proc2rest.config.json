@@ -13,13 +13,13 @@
     "rawServerFiles": ["src/server/my-server-raw.ts"],
     "apiUrl": "http://localhost:3000",
     "cors": {
-        "origin": "*"
+        "allowOrigin": "*"
     },
     "rateLimit": {
-        "windowMs": 900000,
-        "max": 100,
-        "standardHeaders": true,
-        "legacyHeaders": false
+        "windowDurationMs": 900000,
+        "maxRequests": 100,
+        "useStandardHeaders": true,
+        "useLegacyHeaders": false
     },
     "errorStatusCodes": {
         "UnsupportedArgumentError": 422

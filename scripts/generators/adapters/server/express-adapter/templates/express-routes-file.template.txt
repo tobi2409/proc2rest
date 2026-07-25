@@ -2,6 +2,7 @@
 import express, { type Request, type Response } from 'express'
 import cors from 'cors'
 import rateLimit from 'express-rate-limit'
+import helmet from 'helmet'
 import { decode, encode } from '@msgpack/msgpack'
 import { writeLog } from './logger'
 {{{importsLine}}}
@@ -9,8 +10,7 @@ import { writeLog } from './logger'
 const errorStatusCodes = {{{errorStatusCodes}}}
 
 const app = express()
-app.use(cors({{{corsOptions}}}))
-app.use(rateLimit({{{rateLimitOptions}}}))
+app.use(helmet())
 
 {{{rawCode}}}
 

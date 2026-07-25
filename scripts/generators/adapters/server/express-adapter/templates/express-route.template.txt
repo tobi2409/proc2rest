@@ -1,4 +1,10 @@
-app.{{{expressMethod}}}('/api/{{{serverAlias}}}/{{{functionName}}}', [{{#if isGet}}(req, _res, next) => next(){{else}}{{#if hasBinaryParams}}express.raw({ type: 'application/msgpack' }){{else}}express.json(){{/if}}{{/if}}{{{middlewareFunctionNames}}}], async (req: Request, res: Response) => {
+{{#if preflightCorsMiddlewareCode}}
+app.options('/api/{{{serverAlias}}}/{{{functionName}}}', [{{{preflightCorsMiddlewareCode}}}], (_req: Request, res: Response) => {
+    res.sendStatus(204)
+})
+
+{{/if}}
+app.{{{expressMethod}}}('/api/{{{serverAlias}}}/{{{functionName}}}', [{{{middlewaresArrayCode}}}], async (req: Request, res: Response) => {
     try {
         const args = {{#if isGet}}req.query ?? {}{{else}}{{#if hasBinaryParams}}decode(req.body) as Record<string, unknown>{{else}}req.body ?? {}{{/if}}{{/if}}
 

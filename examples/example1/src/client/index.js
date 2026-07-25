@@ -1,67 +1,91 @@
 // @server-import first/my-server.ts
 
-const btn = document.getElementById("btn");
+const btn = document.getElementById('btn')
 
-btn.addEventListener("click", async () => {
-    const result = await myServer.getPerson("Jane Doe");
+btn.addEventListener('click', async () => {
+    const result = await myServer.getPerson('Jane Doe')
 
     for (const entry of result) {
-        alert(`${entry.name} is ${entry.age} years old.`);
+        alert(`${entry.name} is ${entry.age} years old.`)
     }
-});
+})
 
-const btn2 = document.getElementById("btn2");
+const btn2 = document.getElementById('btn2')
 
-btn2.addEventListener("click", async () => {
-    const data = new Uint8Array([1, 2, 3, 4, 5]);
-    const binDataInfo = await myServer.getBinDataInfo("mydata", data);
-    alert(`Bin Data Info: ${binDataInfo}`);
-});
+btn2.addEventListener('click', async () => {
+    const data = new Uint8Array([1, 2, 3, 4, 5])
+    const binDataInfo = await myServer.getBinDataInfo('mydata', data)
+    alert(`Bin Data Info: ${binDataInfo}`)
+})
 
-const btn4 = document.getElementById("btn4");
+const btn4 = document.getElementById('btn4')
 
-btn4.addEventListener("click", async () => {
-    const data = new Uint8Array([1, 2, 3, 4, 5]);
-    const reversed = await myServer.reverseBytes(data);
-    alert(`Original: [${data}]\nReversed: [${reversed}]`);
-});
+btn4.addEventListener('click', async () => {
+    const data = new Uint8Array([1, 2, 3, 4, 5])
+    const reversed = await myServer.reverseBytes(data)
+    alert(`Original: [${data}]\nReversed: [${reversed}]`)
+})
 
-const btn5 = document.getElementById("btn5");
+const btn5 = document.getElementById('btn5')
 
-btn5.addEventListener("click", async () => {
-    const data = new Uint8Array([1, 2, 3, 4, 5]);
-    const result = await myServer.reverseBytesWithName("mydata", data);
+btn5.addEventListener('click', async () => {
+    const data = new Uint8Array([1, 2, 3, 4, 5])
+    const result = await myServer.reverseBytesWithName('mydata', data)
     alert(
-        `Name: ${result.name}\nOriginal: [${data}]\nReversed: [${result.reversed}]`,
-    );
-});
+        `Name: ${result.name}\nOriginal: [${data}]\nReversed: [${result.reversed}]`
+    )
+})
 
-const fileInput = document.getElementById("fileInput");
-const btn3 = document.getElementById("btn3");
+const fileInput = document.getElementById('fileInput')
+const btn3 = document.getElementById('btn3')
 
-btn3.addEventListener("click", async () => {
+btn3.addEventListener('click', async () => {
     if (!fileInput.files.length) {
-        alert("Please select a file");
-        return;
+        alert('Please select a file')
+        return
     }
 
-    const file = fileInput.files[0];
-    console.log(`Selected file: ${file.name}, size: ${file.size} bytes`);
+    const file = fileInput.files[0]
+    console.log(`Selected file: ${file.name}, size: ${file.size} bytes`)
 
     try {
-        const arrayBuffer = await file.arrayBuffer();
-        const uint8Array = new Uint8Array(arrayBuffer);
+        const arrayBuffer = await file.arrayBuffer()
+        const uint8Array = new Uint8Array(arrayBuffer)
         console.log(
-            `File converted to Uint8Array: ${uint8Array.byteLength} bytes`,
-        );
-        console.log("Uint8Array:", uint8Array);
+            `File converted to Uint8Array: ${uint8Array.byteLength} bytes`
+        )
+        console.log('Uint8Array:', uint8Array)
 
         // Call the API with the file data
-        const result = await myServer.getBinDataInfo(file.name, uint8Array);
-        console.log(`Result: ${result}`);
-        alert(`File uploaded: ${result}`);
+        const result = await myServer.getBinDataInfo(file.name, uint8Array)
+        console.log(`Result: ${result}`)
+        alert(`File uploaded: ${result}`)
     } catch (error) {
-        console.error("File upload error:", error);
-        alert(`Error: ${error.message}`);
+        console.error('File upload error:', error)
+        alert(`Error: ${error.message}`)
     }
-});
+})
+
+const btn6 = document.getElementById('btn6')
+
+btn6.addEventListener('click', async () => {
+    try {
+        const result = await myServer.restrictiveCors()
+        alert(`Restrictive CORS Result: ${JSON.stringify(result)}`)
+    } catch (error) {
+        console.error('Restrictive CORS error:', error)
+        alert(`Error: ${error.message}`)
+    }
+})
+
+const btn7 = document.getElementById('btn7')
+
+btn7.addEventListener('click', async () => {
+    try {
+        const result = await myServer.customRateLimit()
+        alert(`Custom Rate Limit Result: ${JSON.stringify(result)}`)
+    } catch (error) {
+        console.error('Custom Rate Limit error:', error)
+        alert(`Error: ${error.message}`)
+    }
+})

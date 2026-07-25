@@ -1,31 +1,31 @@
 const defaultMethodRules = {
-    GET: "^(get|list|find)",
-    POST: "^(create|add|insert)",
-    PATCH: "^(update|set|patch)",
-    DELETE: "^(delete|remove)",
-};
+    GET: '^(get|list|find)',
+    POST: '^(create|add|insert)',
+    PATCH: '^(update|set|patch)',
+    DELETE: '^(delete|remove)'
+}
 
 export function resolveHttpMethod(
     functionName,
     methodRules = defaultMethodRules,
-    customFunctions = {},
+    customFunctions = {}
 ) {
-    const overrideMethod = customFunctions[functionName];
+    const overrideMethod = customFunctions[functionName]
     if (overrideMethod) {
-        return overrideMethod;
+        return overrideMethod
     }
 
     for (const [httpMethod, functionNamePattern] of Object.entries(
-        methodRules,
+        methodRules
     )) {
-        if (typeof functionNamePattern !== "string") {
-            continue;
+        if (typeof functionNamePattern !== 'string') {
+            continue
         }
 
-        if (new RegExp(functionNamePattern, "i").test(functionName)) {
-            return httpMethod;
+        if (new RegExp(functionNamePattern, 'i').test(functionName)) {
+            return httpMethod
         }
     }
 
-    return "POST";
+    return 'POST'
 }
