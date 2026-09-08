@@ -18,6 +18,7 @@ app.{{{expressMethod}}}('/api/{{{serverAlias}}}/{{{functionName}}}', [{{{middlew
         {{{missingParamsBlock}}}
     {{#each params}}{{#if primitiveType}}
         if ('{{{name}}}' in args && (typeof args.{{{name}}} !== '{{{primitiveType}}}'{{#if isNumber}} || !Number.isFinite(args.{{{name}}}){{/if}})) {
+            await writeLog('WARN', 'Invalid parameter type', { method: req.method, path: req.path, parameter: '{{{name}}}', expectedType: '{{{primitiveType}}}', actualType: typeof args.{{{name}}} })
             res.status(400).json({ error: 'Invalid param type' })
             return
         }

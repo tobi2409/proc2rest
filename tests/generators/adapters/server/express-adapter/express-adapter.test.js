@@ -132,6 +132,11 @@ test('converts GET number and boolean query parameters before validation', () =>
     assert.ok(lines.includes("if (args.includeArchived === 'false') args.includeArchived = false"))
     assert.ok(lines.includes("if ('count' in args && (typeof args.count !== 'number' || !Number.isFinite(args.count))) {"))
     assert.ok(lines.includes("if ('includeArchived' in args && (typeof args.includeArchived !== 'boolean')) {"))
+    assert.ok(
+        lines.includes(
+            "await writeLog('WARN', 'Invalid parameter type', { method: req.method, path: req.path, parameter: 'count', expectedType: 'number', actualType: typeof args.count })"
+        )
+    )
     assert.ok(lines.includes("const missingParams = ['count'].filter((name) => !(name in args))"))
 })
 
