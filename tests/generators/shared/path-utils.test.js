@@ -23,6 +23,16 @@ test('returns the normalized full path when it is outside the src directory', ()
     )
 })
 
+test('does not treat a similarly prefixed directory as a child directory', () => {
+    const srcDir = path.resolve('/project/src/server')
+    const fullPath = path.resolve('/project/src/server2/file.ts')
+
+    assert.equal(
+        getRelativePathFromSrcDir(fullPath, srcDir),
+        path.normalize(fullPath)
+    )
+})
+
 test('returns an empty string when the full path equals the src directory', () => {
     const srcDir = path.resolve('/project/src/server')
 

@@ -11,6 +11,10 @@ import {
 } from './shared/cli-args.js'
 import { copySourceTree } from './shared/file-copy.js'
 import { getRelativePathFromSrcDir } from './shared/path-utils.js'
+import {
+    assertPathInsideDirectory,
+    assertValidIdentifier
+} from './shared/validation.js'
 
 const appRootPath = getAppRootPath()
 const generatedClientRootPath = getGeneratedClientRootPath(appRootPath)
@@ -30,6 +34,7 @@ function getServerNamespaceBySrc(servers) {
                 `Invalid server entry in config: ${JSON.stringify(serverConfig)}`
             )
         }
+        assertValidIdentifier(serverConfig.namespace, 'server namespace')
 
         const relativeServerFile = getRelativePathFromSrcDir(
             path.join(appRootPath, serverConfig.src),
@@ -63,6 +68,11 @@ function createApiClientFiles(
             const relativeServerFile = getRelativePathFromSrcDir(
                 path.join(appRootPath, serverSrc),
                 srcServerRootPath
+            )
+            assertPathInsideDirectory(
+                path.join(srcServerRootPath, relativeServerFile),
+                srcServerRootPath,
+                'Server source path'
             )
             const apiClientsFileName = `${relativeServerFile.replace('.ts', '')}-client.js`
             const clientFilePath = path.join(destDir, apiClientsFileName)
@@ -103,9 +113,23 @@ function addApiClientImports() {
                 )
             }
 
-            const copiedClientPath = path.join(
+            const clientRelativePath = getRelativePathFromSrcDir(
+                path.join(appRootPath, clientFileName),
+                srcClientRootPath
+            )
+
+            assertPathInsideDirectory(
+                path.join(srcClientRootPath, clientRelativePath),
+                srcClientRootPath,
+                'Client source path'
+            )
+
+            const copiedClientPath = path.join(destDir, clientRelativePath)
+
+            assertPathInsideDirectory(
+                copiedClientPath,
                 destDir,
-                path.basename(clientFileName)
+                'Client file path'
             )
 
             if (!fs.existsSync(copiedClientPath)) {
@@ -118,8 +142,10 @@ function addApiClientImports() {
                 copiedClientPath,
                 'utf8'
             )
+
             const serverImportRegex =
                 /^\s*\/\/\s*@server-import\s+([^\s]+)\s*$/gm
+                
             const importLines = [
                 ...sourceClientContent.matchAll(serverImportRegex)
             ].map(([, serverFileName]) => {
@@ -129,7 +155,23 @@ function addApiClientImports() {
                         `Server '${serverFileName}' not found in config`
                     )
                 }
-                return `import * as ${serverNamespace} from './${serverFileName.replace('.ts', '')}-client.js'`
+                const serverClientPath = path.join(
+                    destDir,
+                    `${serverFileName.replace(/\.ts$/, '')}-client.js`
+                )
+
+                let importPath = path.relative(
+                    path.dirname(copiedClientPath),
+                    serverClientPath
+                )
+
+                importPath = importPath.split(path.sep).join('/')
+
+                if (!importPath.startsWith('.')) {
+                    importPath = `./${importPath}`
+                }
+
+                return `import * as ${serverNamespace} from '${importPath}'`
             })
 
             const contentWithoutMarkers = sourceClientContent

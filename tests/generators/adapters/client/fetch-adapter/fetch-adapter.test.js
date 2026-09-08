@@ -20,7 +20,6 @@ function makeStub(overrides = {}) {
 }
 
 test('generates a client function calling request with the path, method and params', () => {
-
     const code = createFetchClientFunction(makeStub())
 
     const lines = code.split('\n').map((line) => line.trim())
@@ -34,7 +33,6 @@ test('generates a client function calling request with the path, method and para
 })
 
 test('uses msgpack content types for binary params and return values', () => {
-
     const code = createFetchClientFunction(
         makeStub({
             functionName: 'reverseBytes',
@@ -56,7 +54,6 @@ test('uses msgpack content types for binary params and return values', () => {
 })
 
 test('createFetchClientFileContent includes only @rest functions for the given server file', () => {
-
     const content = createFetchClientFileContent({
         generatorConfig: { apiUrl: 'https://example.test' },
         exportedFunctionsMetadata: [

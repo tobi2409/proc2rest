@@ -20,6 +20,7 @@ test('generates both the server routes file and the client files in one run', ()
             fs.existsSync(path.join(appRoot, 'generated/server/routes.generated.ts')),
             true
         )
+        
         assert.equal(
             fs.existsSync(
                 path.join(appRoot, 'generated/client/first/my-server-client.js')

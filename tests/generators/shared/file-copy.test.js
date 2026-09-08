@@ -12,8 +12,10 @@ function makeTempDir(prefix) {
 test('copyDirectoryRecursive copies nested files and directories', () => {
     const src = makeTempDir('proc2rest-copy-src-')
     const dest = makeTempDir('proc2rest-copy-dest-')
+
     try {
         fs.mkdirSync(path.join(src, 'nested'))
+
         fs.writeFileSync(path.join(src, 'a.txt'), 'a')
         fs.writeFileSync(path.join(src, 'nested/b.txt'), 'b')
 
@@ -30,6 +32,7 @@ test('copyDirectoryRecursive copies nested files and directories', () => {
 test('copyDirectoryRecursive removes stale destination entries not present in source', () => {
     const src = makeTempDir('proc2rest-copy-src-')
     const dest = makeTempDir('proc2rest-copy-dest-')
+
     try {
         fs.writeFileSync(path.join(dest, 'stale.txt'), 'old')
         fs.writeFileSync(path.join(src, 'fresh.txt'), 'new')
@@ -47,8 +50,10 @@ test('copyDirectoryRecursive removes stale destination entries not present in so
 test('copyDirectoryRecursive preserves configured entries in the destination', () => {
     const src = makeTempDir('proc2rest-copy-src-')
     const dest = makeTempDir('proc2rest-copy-dest-')
+
     try {
         fs.mkdirSync(path.join(dest, 'node_modules'))
+
         fs.writeFileSync(path.join(dest, 'node_modules/keep.txt'), 'keep')
         fs.writeFileSync(path.join(src, 'fresh.txt'), 'new')
 
@@ -67,6 +72,7 @@ test('copyDirectoryRecursive preserves configured entries in the destination', (
 
 test('copySourceTree throws when the source directory does not exist', () => {
     const dest = makeTempDir('proc2rest-copy-dest-')
+
     try {
         assert.throws(
             () => copySourceTree('/does/not/exist', dest),
@@ -80,8 +86,10 @@ test('copySourceTree throws when the source directory does not exist', () => {
 test('copySourceTree copies the tree while preserving node_modules', () => {
     const src = makeTempDir('proc2rest-copy-src-')
     const dest = makeTempDir('proc2rest-copy-dest-')
+
     try {
         fs.writeFileSync(path.join(src, 'index.ts'), 'export {}')
+        
         fs.mkdirSync(path.join(dest, 'node_modules'))
         fs.writeFileSync(path.join(dest, 'node_modules/pkg.js'), 'module.exports = {}')
 

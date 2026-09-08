@@ -8,9 +8,16 @@ app.{{{expressMethod}}}('/api/{{{serverAlias}}}/{{{functionName}}}', [{{{middlew
     try {
         const args = {{#if isGet}}req.query ?? {}{{else}}{{#if hasBinaryParams}}decode(req.body) as Record<string, unknown>{{else}}req.body ?? {}{{/if}}{{/if}}
 
+    {{#if isGet}}{{#each params}}{{#if primitiveType}}
+        if ('{{{name}}}' in args) {
+            {{#if isNumber}}args.{{{name}}} = Number(args.{{{name}}}){{/if}}{{#if isBoolean}}if (args.{{{name}}} === 'true') args.{{{name}}} = true
+            if (args.{{{name}}} === 'false') args.{{{name}}} = false{{/if}}{{#if isBigInt}}try { args.{{{name}}} = BigInt(args.{{{name}}}) } catch {}{{/if}}
+        }
+    {{/if}}{{/each}}{{/if}}
+
         {{{missingParamsBlock}}}
     {{#each params}}{{#if primitiveType}}
-        if (typeof args.{{{name}}} !== '{{{primitiveType}}}') {
+        if ('{{{name}}}' in args && (typeof args.{{{name}}} !== '{{{primitiveType}}}'{{#if isNumber}} || !Number.isFinite(args.{{{name}}}){{/if}})) {
             res.status(400).json({ error: 'Invalid param type' })
             return
         }

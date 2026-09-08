@@ -4,10 +4,10 @@ import cors from 'cors'
 import rateLimit from 'express-rate-limit'
 import helmet from 'helmet'
 import { decode, encode } from '@msgpack/msgpack'
-import { writeLog } from './logger'
+import { writeLog } from './logger.js'
 {{{importsLine}}}
 
-const errorStatusCodes = {{{errorStatusCodes}}}
+const errorStatusCodes: Record<string, number> = {{{errorStatusCodes}}}
 
 const app = express()
 app.use(helmet())

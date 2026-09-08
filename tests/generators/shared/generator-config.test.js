@@ -11,6 +11,7 @@ function makeTempAppRoot() {
 
 test('returns the default config when no config file exists', () => {
     const appRoot = makeTempAppRoot()
+
     try {
         const config = getGeneratorConfig(appRoot)
 
@@ -24,6 +25,7 @@ test('returns the default config when no config file exists', () => {
 
 test('merges the config file contents over the defaults', () => {
     const appRoot = makeTempAppRoot()
+
     try {
         fs.writeFileSync(
             path.join(appRoot, 'proc2rest.config.json'),
@@ -42,6 +44,7 @@ test('merges the config file contents over the defaults', () => {
 
 test('throws a descriptive error for invalid JSON in the config file', () => {
     const appRoot = makeTempAppRoot()
+
     try {
         fs.writeFileSync(path.join(appRoot, 'proc2rest.config.json'), '{ not json')
 
@@ -56,12 +59,15 @@ test('throws a descriptive error for invalid JSON in the config file', () => {
 
 test('caches the config per app root path', () => {
     const appRoot = makeTempAppRoot()
+
     try {
         const first = getCachedGeneratorConfig(appRoot)
+
         fs.writeFileSync(
             path.join(appRoot, 'proc2rest.config.json'),
             JSON.stringify({ apiUrl: 'https://changed.test' })
         )
+        
         const second = getCachedGeneratorConfig(appRoot)
 
         assert.strictEqual(first, second)

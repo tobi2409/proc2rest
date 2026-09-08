@@ -5,7 +5,10 @@ export function getRelativePathFromSrcDir(fullPath, srcDirPath) {
         const normalized = path.normalize(fullPath)
         const normalizedSrcDir = path.normalize(srcDirPath)
 
-        if (normalized.startsWith(normalizedSrcDir)) {
+        if (
+            normalized === normalizedSrcDir ||
+            normalized.startsWith(normalizedSrcDir + path.sep)
+        ) {
             return path.relative(normalizedSrcDir, normalized)
         }
 

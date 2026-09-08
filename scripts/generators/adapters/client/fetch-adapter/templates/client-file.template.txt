@@ -6,7 +6,7 @@ let msgPackModulePromise
 
 async function getMsgPackModule() {
     if (!msgPackModulePromise) {
-        msgPackModulePromise = import('https://cdn.jsdelivr.net/npm/@msgpack/msgpack/+esm')
+        msgPackModulePromise = import({{{msgpackUrl}}})
     }
 
     return msgPackModulePromise

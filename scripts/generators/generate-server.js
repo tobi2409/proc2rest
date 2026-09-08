@@ -10,6 +10,7 @@ import {
 } from './shared/cli-args.js'
 import { copySourceTree } from './shared/file-copy.js'
 import { getRelativePathFromSrcDir } from './shared/path-utils.js'
+import { assertPathInsideDirectory, assertValidIdentifier } from './shared/validation.js'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -35,15 +36,24 @@ function generateRoutesFile(serverAdapter) {
         for (const serverConfig of configuredServers) {
             const serverSrc = serverConfig.src
             const serverNamespace = serverConfig.namespace
+            assertValidIdentifier(serverNamespace, 'server namespace')
+
             const absoluteServerFile = path.join(appRootPath, serverSrc)
             const serverFileName = getRelativePathFromSrcDir(
                 absoluteServerFile,
                 srcServerRootPath
             )
+
+            assertPathInsideDirectory(
+                path.join(srcServerRootPath, serverFileName),
+                srcServerRootPath,
+                'Server source path'
+            )
+            
             const importPath = serverFileName.replace(/\.ts$/, '')
 
             importsLines.push(
-                `import * as ${serverNamespace} from './${importPath}'`
+                `import * as ${serverNamespace} from './${importPath}.js'`
             )
         }
 

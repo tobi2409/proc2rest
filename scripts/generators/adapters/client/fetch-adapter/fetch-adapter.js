@@ -63,6 +63,10 @@ export function createFetchClientFileContent({
             apiBaseUrl: JSON.stringify(
                 generatorConfig.apiUrl ?? 'http://localhost:3000'
             ),
+            msgpackUrl: JSON.stringify(
+                generatorConfig.msgpackUrl ??
+                    'https://cdn.jsdelivr.net/npm/@msgpack/msgpack@3.1.3/+esm'
+            ),
             functionsBlock: clientFunctionsBlock
         })
     } catch (error) {

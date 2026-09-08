@@ -11,6 +11,7 @@ const scriptPath = path.resolve(__dirname, '../../scripts/distro/fetch.js')
 
 test('generates a fetch client file with a function for each @rest server function', () => {
     const appRoot = createFixtureAppRoot()
+
     try {
         execFileSync(process.execPath, [scriptPath, '--appPath', appRoot], {
             stdio: 'pipe'
@@ -20,6 +21,7 @@ test('generates a fetch client file with a function for each @rest server functi
             path.join(appRoot, 'generated/client/first/my-server-client.js'),
             'utf8'
         )
+
         const clientLines = clientContent.split('\n').map((line) => line.trim())
 
         assert.ok(clientLines.includes('export async function getPerson(name) {'))
@@ -33,6 +35,7 @@ test('generates a fetch client file with a function for each @rest server functi
             path.join(appRoot, 'generated/client/index.js'),
             'utf8'
         )
+        
         const indexLines = indexContent.split('\n').map((line) => line.trim())
 
         assert.ok(

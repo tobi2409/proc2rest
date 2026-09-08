@@ -62,6 +62,7 @@ Create `proc2rest.config.json` in your project root:
     - `namespace`: import namespace used for generated routes and clients
 - `rawServerFiles`: extra server files to inline into `routes.generated.ts`
 - `apiUrl`: Base URL for API requests (default: `http://localhost:3000`)
+- `msgpackUrl`: ESM URL for the pinned MessagePack browser module (default: `https://cdn.jsdelivr.net/npm/@msgpack/msgpack@3.1.3/+esm`)
 - `cors`: Framework-neutral CORS config (translated by the server adapter, e.g. `allowOrigin`)
 - `rateLimit`: Framework-neutral rate-limit config (translated by the server adapter, e.g. `windowDurationMs`, `maxRequests`)
 - `errorStatusCodes`: map from error class name to HTTP status code
@@ -122,9 +123,9 @@ Parameter overview:
 
 - `--appPath`: Root of your app project (default: `.`)
 - `--srcServerDir`: Source directory for server TS files (default: `src/server`)
-- `--generatedServerDir`: Output directory for generated server code (default: `generated/srv`)
+- `--generatedServerDir`: Output directory for generated server code (default: `generated/server`)
 - `--srcClientDir`: Source directory for client JS files (default: `src/client`)
-- `--generatedClientDir`: Output directory for generated client code (default: `generated/cl`)
+- `--generatedClientDir`: Output directory for generated client code (default: `generated/client`)
 - `--configPath`: Path to `proc2rest.config.json` (default: `<appPath>/proc2rest.config.json`)
 
 ### 1. Install Dependencies
@@ -158,7 +159,7 @@ export function uploadFile(filename: string, data: Uint8Array): string {
 ### 3. Generate Code
 
 ```bash
-npm run generate --appPath=examples/example1 --srcServerDir=src/server --generatedServerDir=generated/srv --srcClientDir=src/client --generatedClientDir=generated/cl
+npx proc2rest --appPath=examples/example1 --srcServerDir=src/server --generatedServerDir=generated/srv --srcClientDir=src/client --generatedClientDir=generated/cl
 ```
 
 This creates (u. a.):
@@ -319,7 +320,7 @@ proc2rest/
 To regenerate after changes to server/client files:
 
 ```bash
-npm run generate --appPath=examples/example1 --srcServerDir=src/server --generatedServerDir=generated/srv --srcClientDir=src/client --generatedClientDir=generated/cl
+npx proc2rest --appPath=examples/example1 --srcServerDir=src/server --generatedServerDir=generated/srv --srcClientDir=src/client --generatedClientDir=generated/cl
 ```
 
 To run the generated server:

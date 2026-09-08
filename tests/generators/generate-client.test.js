@@ -14,12 +14,17 @@ let fixturesToClean = []
 
 afterEach(() => {
     process.argv = originalArgv
-    for (const dir of fixturesToClean) removeFixtureAppRoot(dir)
+
+    for (const dir of fixturesToClean) {
+        removeFixtureAppRoot(dir)
+    }
+
     fixturesToClean = []
 })
 
 test('runClientGenerator copies the client tree, writes api client files and rewires server imports', async () => {
     const appRoot = createFixtureAppRoot()
+
     fixturesToClean.push(appRoot)
     // generate-client.js reads --appPath from process.argv at import time, not as a function argument
     process.argv = ['node', 'generate-client.js', '--appPath', appRoot]
@@ -34,10 +39,12 @@ test('runClientGenerator copies the client tree, writes api client files and rew
     })
 
     const generatedClientDir = path.join(appRoot, 'generated/client')
+
     const indexContent = fs.readFileSync(
         path.join(generatedClientDir, 'index.js'),
         'utf8'
     )
+
     const indexLines = indexContent.split('\n').map((line) => line.trim())
 
     assert.ok(
@@ -45,6 +52,7 @@ test('runClientGenerator copies the client tree, writes api client files and rew
             "import * as myServer from './first/my-server-client.js'"
         )
     )
+
     assert.equal(
         fs.readFileSync(
             path.join(generatedClientDir, 'first/my-server-client.js'),
@@ -56,7 +64,9 @@ test('runClientGenerator copies the client tree, writes api client files and rew
 
 test('runClientGenerator exits the process when a configured client file is missing', async () => {
     const appRoot = createFixtureAppRoot()
+
     fixturesToClean.push(appRoot)
+
     fs.writeFileSync(
         path.join(appRoot, 'proc2rest.config.json'),
         JSON.stringify({
@@ -67,6 +77,7 @@ test('runClientGenerator exits the process when a configured client file is miss
             apiUrl: 'http://localhost:3000'
         })
     )
+
     process.argv = ['node', 'generate-client.js', '--appPath', appRoot]
 
     const { runClientGenerator } = await import(`${moduleUrl}?case=missing-client-file`)
@@ -76,6 +87,7 @@ test('runClientGenerator exits the process when a configured client file is miss
     process.exit = (code) => {
         exitCode = code
     }
+    
     try {
         runClientGenerator({ createClientFileContent: () => '' })
     } finally {

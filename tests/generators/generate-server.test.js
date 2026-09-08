@@ -14,13 +14,19 @@ let fixturesToClean = []
 
 afterEach(() => {
     process.argv = originalArgv
-    for (const dir of fixturesToClean) removeFixtureAppRoot(dir)
+
+    for (const dir of fixturesToClean) {
+        removeFixtureAppRoot(dir)
+    }
+
     fixturesToClean = []
 })
 
 test('runServerGenerator copies the server source tree and writes the generated routes file', async () => {
     const appRoot = createFixtureAppRoot()
+
     fixturesToClean.push(appRoot)
+
     process.argv = ['node', 'generate-server.js', '--appPath', appRoot]
 
     // cache-busting query forces a fresh module evaluation against the new --appPath
@@ -31,11 +37,14 @@ test('runServerGenerator copies the server source tree and writes the generated 
     })
 
     const generatedServerDir = path.join(appRoot, 'generated/server')
+
     assert.equal(
         fs.readFileSync(path.join(generatedServerDir, 'routes.generated.ts'), 'utf8'),
         'GENERATED_ROUTES_CONTENT'
     )
+
     assert.equal(fs.existsSync(path.join(generatedServerDir, 'logger.ts')), true)
+
     assert.equal(
         fs.existsSync(path.join(generatedServerDir, 'first/my-server.ts')),
         true
@@ -44,7 +53,9 @@ test('runServerGenerator copies the server source tree and writes the generated 
 
 test('runServerGenerator exits the process when the source directory is missing', async () => {
     const appRoot = createFixtureAppRoot()
+
     fixturesToClean.push(appRoot)
+
     process.argv = ['node', 'generate-server.js', '--appPath', appRoot]
 
     const { runServerGenerator } = await import(`${moduleUrl}?case=missing-src`)
@@ -56,6 +67,7 @@ test('runServerGenerator exits the process when the source directory is missing'
     process.exit = (code) => {
         exitCode = code
     }
+    
     try {
         runServerGenerator({ createRoutesFileContent: () => '' })
     } finally {

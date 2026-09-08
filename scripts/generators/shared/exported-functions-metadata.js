@@ -6,9 +6,15 @@ import { resolveHttpMethod } from './http-method-resolver.js'
 import { getAppRootPath, getSrcServerRootPath } from './cli-args.js'
 import { getCachedGeneratorConfig } from './generator-config.js'
 import { getRelativePathFromSrcDir } from './path-utils.js'
+import { assertValidIdentifier } from './validation.js'
 
 function isBinaryType(typeName, binaryTypes) {
-    return binaryTypes.includes(typeName)
+    if (binaryTypes.includes(typeName)) {
+        return true
+    }
+
+    const promiseType = typeName.match(/^Promise<(.+)>$/)
+    return promiseType ? isBinaryType(promiseType[1], binaryTypes) : false
 }
 
 function hasRestMarker(fn) {
@@ -150,6 +156,8 @@ export function getExportedFunctionsMetadata(appRootPath = getAppRootPath()) {
         for (const serverConfig of servers) {
             const serverSrc = serverConfig.src
             const serverNamespace = serverConfig.namespace
+            assertValidIdentifier(serverNamespace, 'server namespace')
+
             const sourceFilePath = path.join(appRootPath, serverSrc)
 
             project.addSourceFileAtPathIfExists(sourceFilePath)
@@ -177,6 +185,11 @@ export function getExportedFunctionsMetadata(appRootPath = getAppRootPath()) {
                 let hasBinaryParams = false
                 let hasJsonParams = false
                 const middlewares = getMiddlewaresFromFunctionComments(fn)
+
+                for (const middleware of middlewares) {
+                    assertValidIdentifier(middleware, 'middleware name')
+                }
+                
                 const corsConfig = getCorsConfigFromFunctionComments(fn)
                 const rateLimitConfig =
                     getRateLimitConfigFromFunctionComments(fn)
@@ -195,7 +208,8 @@ export function getExportedFunctionsMetadata(appRootPath = getAppRootPath()) {
                     params.push({
                         name: param.getName(),
                         type: paramType,
-                        isBinary: currentIsBinary
+                        isBinary: currentIsBinary,
+                        isOptional: param.isOptional() || param.hasInitializer()
                     })
                 }
 
@@ -205,6 +219,12 @@ export function getExportedFunctionsMetadata(appRootPath = getAppRootPath()) {
                     methodRules,
                     customFunctions
                 )
+
+                if (hasRest && httpMethod === 'GET' && hasBinaryParams) {
+                    throw new Error(
+                        `GET function '${functionName}' cannot have binary parameters`
+                    )
+                }
 
                 exportedFunctionsMetadata.push({
                     functionName,

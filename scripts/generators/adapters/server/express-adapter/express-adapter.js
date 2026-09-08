@@ -2,6 +2,7 @@ import * as fs from 'fs'
 import * as path from 'path'
 import { fileURLToPath } from 'url'
 import Handlebars from 'handlebars'
+import { assertValidIdentifier } from '../../../shared/validation.js'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -74,15 +75,24 @@ function mapRateLimitConfigToExpressOptions(rateLimitConfig) {
 
 function createExpressRouteBody(routeStub, generatorConfig) {
     try {
-        const paramNames = routeStub.params.map((param) => param.name)
+        assertValidIdentifier(routeStub.serverNamespace, 'server namespace')
+        assertValidIdentifier(routeStub.functionName, 'function name')
+        for (const middleware of routeStub.middlewares ?? []) {
+            assertValidIdentifier(middleware, 'middleware name')
+        }
+
         const params = routeStub.params.map((param) => ({
             name: param.name,
             type: param.type,
             primitiveType: ['string', 'number', 'boolean', 'bigint'].includes(param.type)
                 ? param.type
-                : undefined
+                : undefined,
+            isNumber: param.type === 'number',
+            isBoolean: param.type === 'boolean',
+            isBigInt: param.type === 'bigint',
+            isOptional: param.isOptional
         }))
-        const functionCall = `${routeStub.serverNamespace}.${routeStub.functionName}(${paramNames.map((name) => `args.${name}`).join(', ')})`
+            const functionCall = `${routeStub.serverNamespace}.${routeStub.functionName}(${params.map((param, index) => `args.${param.name} as Parameters<typeof ${routeStub.serverNamespace}.${routeStub.functionName}>[${index}]`).join(', ')})`
         const expressMethod = routeStub.httpMethod.toLowerCase()
         const isGet = routeStub.httpMethod === 'GET'
         const middlewareItems = []
@@ -144,10 +154,11 @@ function createExpressRouteBody(routeStub, generatorConfig) {
         const middlewaresArrayCode = middlewareItems.join(', ')
 
         const missingParamsBlock =
-            paramNames.length > 0
+            params.some((param) => !param.isOptional)
                 ? missingParamsTemplate({
-                      paramList: paramNames
-                          .map((name) => `'${name}'`)
+                      paramList: params
+                          .filter((param) => !param.isOptional)
+                          .map((param) => `'${param.name}'`)
                           .join(', ')
                   })
                 : ''
