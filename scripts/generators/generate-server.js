@@ -70,8 +70,6 @@ function generateRoutesFile(serverAdapter) {
             })
             .join('\n\n')
 
-        //TODO: remove rawServerFiles from generated
-
         const fileContent = serverAdapter.createRoutesFileContent({
             generatorConfig,
             importsBlock,
@@ -92,7 +90,13 @@ function generateRoutesFile(serverAdapter) {
 
 export function runServerGenerator(serverAdapter) {
     try {
-        copySourceTree(srcServerRootPath, generatedServerRootPath)
+        const rawServerFilePaths = (generatorConfig.rawServerFiles ?? []).map(
+            (rawFile) => path.join(appRootPath, rawFile)
+        )
+        copySourceTree(srcServerRootPath, generatedServerRootPath, {
+            excludePaths: rawServerFilePaths
+        })
+        
         generateRoutesFile(serverAdapter)
     } catch (error) {
         console.error(

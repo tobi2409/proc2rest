@@ -2,6 +2,8 @@
 
 A code generator that converts TypeScript RPC functions into REST APIs with automatic client generation.
 
+> **Experimental status:** This project is still in its testing phase. It has not yet been sufficiently hardened or validated for production use and is therefore not recommended for production deployments.
+
 ## Overview
 
 **proc2rest** generates:
@@ -354,13 +356,31 @@ console.log('Encoded bytes:', encoded)
 
 Or inspect in browser DevTools → Network → binary request body.
 
+## Security Responsibilities
+
+proc2rest provides basic transport-level safeguards such as Helmet integration, configurable CORS, rate limiting, request size limits, primitive parameter checks, generic client error responses, and server-side error logging. These mechanisms are not a complete application security layer.
+
+Application developers remain responsible for:
+
+- implementing authentication and authorization with appropriate middleware
+- validating the structure, allowed values, and business rules of complex parameters; generated TypeScript assertions neither validate nor convert values at runtime
+- using restrictive CORS settings instead of `allowOrigin: "*"` where credentials or sensitive data are involved
+- configuring suitable rate limits and request size limits for every exposed endpoint
+- terminating TLS/HTTPS securely, commonly through a reverse proxy, and applying secure deployment and network settings
+- protecting secrets and sensitive data, and ensuring they are not exposed through source files, raw server code, responses, or logs
+- reviewing all generated routes and trusted `rawServerFiles` before deployment
+- keeping proc2rest, Express, middleware, and generated-server dependencies updated
+- adding application-specific protections such as CSRF prevention, abuse protection, audit logging, and security monitoring where required
+
+Generated endpoints should be treated like manually implemented public API endpoints and undergo the same security review and testing.
+
 ## Limitations & TODOs
 
 ### High Priority
 
 - **Unit tests for the generator**: Test metadata extraction, HTTP method resolution, and code generation output
 - **HTTPS support**: Allow configuring an HTTPS server (cert/key paths via config or CLI) in the generated server bootstrap
-- **Additional Express.js security mechanisms**: Support for `helmet`, stricter CORS policies, request size limits, and other hardening options via `proc2rest.config.json`
+- **Additional Express.js security mechanisms**: Expand configurable hardening options beyond the existing Helmet, CORS, rate-limit, and request-size support
 
 ### Medium Priority
 

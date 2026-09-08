@@ -23,14 +23,17 @@ app.{{{expressMethod}}}('/api/{{{serverAlias}}}/{{{functionName}}}', [{{{middlew
         }
 {{/if}}{{/each}}
 
+    // Type assertions in the generated call neither validate nor convert values at runtime.
         const result = await Promise.resolve({{{functionCall}}})
         await writeLog('INFO', 'Request handled successfully', { method: req.method, path: req.path })
         {{#if returnIsBinary}}res.set('Content-Type', 'application/msgpack').send(Buffer.from(encode({ result }))){{else}}res.json({ result }){{/if}}
     } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+        const errorName = error instanceof Error ? error.name : typeof error
+        const errorStack = error instanceof Error ? error.stack : undefined
         const statusCode = error instanceof Error ? errorStatusCodes[error.constructor.name] : undefined
         const httpStatus = typeof statusCode === 'number' ? statusCode : 500
-        await writeLog('ERROR', 'Route execution failed', { method: req.method, path: req.path, error: errorMessage })
+        await writeLog('ERROR', 'Route execution failed', { method: req.method, path: req.path, errorName, errorMessage, errorStack })
         res.status(httpStatus).json({ error: 'Request failed' })
     }
 })

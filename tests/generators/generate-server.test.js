@@ -51,6 +51,36 @@ test('runServerGenerator copies the server source tree and writes the generated 
     )
 })
 
+test('runServerGenerator embeds raw server files without copying them', async () => {
+    const appRoot = createFixtureAppRoot()
+
+    fixturesToClean.push(appRoot)
+
+    const configPath = path.join(appRoot, 'proc2rest.config.json')
+    const config = JSON.parse(fs.readFileSync(configPath, 'utf8'))
+    config.rawServerFiles = ['src/server/raw.ts']
+    fs.writeFileSync(configPath, JSON.stringify(config))
+    fs.writeFileSync(path.join(appRoot, 'src/server/raw.ts'), 'RAW_SERVER_CODE')
+
+    process.argv = ['node', 'generate-server.js', '--appPath', appRoot]
+
+    const { runServerGenerator } = await import(`${moduleUrl}?case=raw-file`)
+    let receivedRawCode
+
+    runServerGenerator({
+        createRoutesFileContent: ({ rawCode }) => {
+            receivedRawCode = rawCode
+            return rawCode
+        }
+    })
+
+    assert.equal(receivedRawCode, 'RAW_SERVER_CODE')
+    assert.equal(
+        fs.existsSync(path.join(appRoot, 'generated/server/raw.ts')),
+        false
+    )
+})
+
 test('runServerGenerator exits the process when the source directory is missing', async () => {
     const appRoot = createFixtureAppRoot()
 

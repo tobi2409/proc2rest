@@ -179,3 +179,17 @@ test('omits cors middleware when corsConfig is explicitly disabled', () => {
         )
     )
 })
+
+test('adds a final error handler that logs details and returns a generic message', () => {
+    const content = createExpressRoutesFileContent({
+        generatorConfig: {},
+        importsBlock: '',
+        rawCode: '',
+        exportedFunctionsMetadata: [makeStub()]
+    })
+
+    assert.match(content, /app\.use\(async \(error: unknown, req: Request, res: Response,/)
+    assert.match(content, /errorStack/)
+    assert.match(content, /await writeLog\('ERROR', 'Unhandled request error'/)
+    assert.match(content, /res\.status\(httpStatus\)\.json\(\{ error: 'Request failed' \}\)/)
+})

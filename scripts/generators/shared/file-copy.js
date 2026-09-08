@@ -1,10 +1,12 @@
 import * as fs from 'fs'
 import * as path from 'path'
 
+// preserveEntries keeps named entries already present in the destination,
+// while excludedSourcePaths skips matching files or directories from the source.
 export function copyDirectoryRecursive(
     sourceDir,
     destDir,
-    { preserveEntries = [] } = {}
+    { preserveEntries = [], excludedSourcePaths = [] } = {}
 ) {
     try {
         const normalizedDestDir = path.resolve(destDir)
@@ -27,10 +29,20 @@ export function copyDirectoryRecursive(
         })) {
             const sourcePath = path.join(sourceDir, entry.name)
             const destPath = path.join(destDir, entry.name)
+            const normalizedSourcePath = path.resolve(sourcePath)
+
+            if (
+                excludedSourcePaths.some(
+                    (excludedPath) =>
+                        excludedPath === normalizedSourcePath ||
+                        normalizedSourcePath.startsWith(excludedPath + path.sep)
+                )
+            ) {
+                continue
+            }
 
             // Skip entries that contain or equal the destination (avoids infinite recursion
             // when destDir is inside sourceDir)
-            const normalizedSourcePath = path.resolve(sourcePath)
             if (
                 normalizedDestDir === normalizedSourcePath ||
                 normalizedDestDir.startsWith(normalizedSourcePath + path.sep)
@@ -40,7 +52,8 @@ export function copyDirectoryRecursive(
 
             if (entry.isDirectory()) {
                 copyDirectoryRecursive(sourcePath, destPath, {
-                    preserveEntries
+                    preserveEntries,
+                    excludedSourcePaths
                 })
             } else {
                 fs.copyFileSync(sourcePath, destPath)
@@ -53,14 +66,17 @@ export function copyDirectoryRecursive(
     }
 }
 
-export function copySourceTree(srcPath, destPath) {
+export function copySourceTree(srcPath, destPath, { excludePaths = [] } = {}) {
     try {
         if (!fs.existsSync(srcPath)) {
             throw new Error(`Source directory not found: ${srcPath}`)
         }
 
         copyDirectoryRecursive(srcPath, destPath, {
-            preserveEntries: ['node_modules']
+            preserveEntries: ['node_modules'],
+            excludedSourcePaths: excludePaths.map((excludedPath) =>
+                path.resolve(excludedPath)
+            )
         })
     } catch (error) {
         throw new Error(

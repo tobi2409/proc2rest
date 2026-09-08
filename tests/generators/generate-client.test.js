@@ -35,7 +35,8 @@ test('runClientGenerator copies the client tree, writes api client files and rew
 
     runClientGenerator({
         createClientFileContent: () =>
-            'export async function getPerson(name) { return name }'
+            'export async function getPerson(name) { return name }',
+        createClientRuntimeFileContent: () => 'export function request() {}'
     })
 
     const generatedClientDir = path.join(appRoot, 'generated/client')
@@ -59,6 +60,14 @@ test('runClientGenerator copies the client tree, writes api client files and rew
             'utf8'
         ),
         'export async function getPerson(name) { return name }'
+    )
+
+    assert.equal(
+        fs.readFileSync(
+            path.join(generatedClientDir, 'proc2rest-client.js'),
+            'utf8'
+        ),
+        'export function request() {}'
     )
 })
 

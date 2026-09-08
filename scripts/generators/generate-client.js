@@ -78,10 +78,23 @@ function createApiClientFiles(
             const clientFilePath = path.join(destDir, apiClientsFileName)
             const clientFileDir = path.dirname(clientFilePath)
 
+            // API clients can be nested, so each one needs its own relative path
+            // to the single runtime file at the generated client root.
+            let requestImportPath = path.relative(
+                clientFileDir,
+                path.join(destDir, 'proc2rest-client.js')
+            )
+
+            requestImportPath = requestImportPath.split(path.sep).join('/')
+            if (!requestImportPath.startsWith('.')) {
+                requestImportPath = `./${requestImportPath}`
+            }
+
             const clientApiFileContent = clientAdapter.createClientFileContent({
                 generatorConfig,
                 exportedFunctionsMetadata,
-                serverFile: relativeServerFile
+                serverFile: relativeServerFile,
+                requestImportPath
             })
 
             fs.mkdirSync(clientFileDir, { recursive: true })
@@ -94,6 +107,23 @@ function createApiClientFiles(
         )
         process.exit(1)
     }
+}
+
+function createClientRuntimeFile(clientAdapter) {
+    // Runtime generation is optional for adapters that keep their support code elsewhere.
+    if (typeof clientAdapter.createClientRuntimeFileContent !== 'function') {
+        return
+    }
+
+    const runtimeContent = clientAdapter.createClientRuntimeFileContent({
+        generatorConfig
+    })
+    
+    fs.writeFileSync(
+        path.join(generatedClientRootPath, 'proc2rest-client.js'),
+        runtimeContent,
+        'utf8'
+    )
 }
 
 function addApiClientImports() {
@@ -197,6 +227,10 @@ function addApiClientImports() {
 export function runClientGenerator(clientAdapter) {
     try {
         copySourceTree(srcClientRootPath, generatedClientRootPath)
+
+        // Generate shared request and serialization code once before API clients
+        // import it from their server-specific files.
+        createClientRuntimeFile(clientAdapter)
         createApiClientFiles(clientAdapter)
         addApiClientImports()
     } catch (error) {

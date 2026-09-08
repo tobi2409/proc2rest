@@ -14,6 +14,17 @@ const clientFileTemplatePath = path.resolve(
 const clientFileTemplateSource = fs.readFileSync(clientFileTemplatePath, 'utf8')
 const clientFileTemplate = Handlebars.compile(clientFileTemplateSource)
 
+// The runtime template contains request and MessagePack support shared by all API clients.
+const clientRuntimeTemplatePath = path.resolve(
+    __dirname,
+    'templates/client-runtime.template.txt'
+)
+const clientRuntimeTemplateSource = fs.readFileSync(
+    clientRuntimeTemplatePath,
+    'utf8'
+)
+const clientRuntimeTemplate = Handlebars.compile(clientRuntimeTemplateSource)
+
 const clientFunctionTemplatePath = path.resolve(
     __dirname,
     'templates/client-function.template.txt'
@@ -48,11 +59,25 @@ export function createFetchClientFunction(routeStub) {
 }
 
 export function createFetchClientFileContent({
-    generatorConfig,
     exportedFunctionsMetadata,
-    serverFile
+    serverFile,
+    requestImportPath
 }) {
     try {
+        let resolvedRequestImportPath = requestImportPath
+
+        // Direct adapter consumers may not provide the path calculated by generate-client.
+        if (!resolvedRequestImportPath) {
+            resolvedRequestImportPath = path.posix.relative(
+                path.posix.dirname(serverFile),
+                'proc2rest-client.js'
+            )
+            
+            if (!resolvedRequestImportPath.startsWith('.')) {
+                resolvedRequestImportPath = `./${resolvedRequestImportPath}`
+            }
+        }
+
         const clientFunctionsBlock = (exportedFunctionsMetadata ?? [])
             .filter((stub) => stub.hasRestMarker)
             .filter((stub) => stub.serverFile === serverFile)
@@ -60,13 +85,7 @@ export function createFetchClientFileContent({
             .join('\n\n')
 
         return clientFileTemplate({
-            apiBaseUrl: JSON.stringify(
-                generatorConfig.apiUrl ?? 'http://localhost:3000'
-            ),
-            msgpackUrl: JSON.stringify(
-                generatorConfig.msgpackUrl ??
-                    'https://cdn.jsdelivr.net/npm/@msgpack/msgpack@3.1.3/+esm'
-            ),
+            requestImportPath: resolvedRequestImportPath,
             functionsBlock: clientFunctionsBlock
         })
     } catch (error) {
@@ -74,4 +93,17 @@ export function createFetchClientFileContent({
             `Failed to create fetch client file content: ${error instanceof Error ? error.message : error}`
         )
     }
+}
+
+export function createFetchClientRuntimeFileContent({ generatorConfig }) {
+    // API-wide settings belong in the shared runtime rather than every generated client.
+    return clientRuntimeTemplate({
+        apiBaseUrl: JSON.stringify(
+            generatorConfig.apiUrl ?? 'http://localhost:3000'
+        ),
+        msgpackUrl: JSON.stringify(
+            generatorConfig.msgpackUrl ??
+                'https://cdn.jsdelivr.net/npm/@msgpack/msgpack@3.1.3/+esm'
+        )
+    })
 }

@@ -2,7 +2,8 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import {
     createFetchClientFunction,
-    createFetchClientFileContent
+    createFetchClientFileContent,
+    createFetchClientRuntimeFileContent
 } from '../../../../../scripts/generators/adapters/client/fetch-adapter/fetch-adapter.js'
 
 function makeStub(overrides = {}) {
@@ -66,8 +67,19 @@ test('createFetchClientFileContent includes only @rest functions for the given s
 
     const lines = content.split('\n').map((line) => line.trim())
 
-    assert.ok(lines.includes('const API_BASE_URL = "https://example.test"'))
+    assert.ok(lines.includes("import { request } from '../proc2rest-client.js'"))
     assert.ok(lines.includes('export async function getPerson(name) {'))
     assert.equal(content.includes('internalOnly'), false)
     assert.equal(content.includes('otherServerFn'), false)
+    assert.equal(content.includes('function getMsgPackModule'), false)
+})
+
+test('creates one shared client runtime with request and msgpack loading', () => {
+    const content = createFetchClientRuntimeFileContent({
+        generatorConfig: { apiUrl: 'https://example.test' }
+    })
+
+    assert.match(content, /const API_BASE_URL = "https:\/\/example\.test"/)
+    assert.match(content, /async function getMsgPackModule\(\)/)
+    assert.match(content, /export async function request\(/)
 })
