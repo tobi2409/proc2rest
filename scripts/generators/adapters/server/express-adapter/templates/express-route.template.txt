@@ -9,6 +9,12 @@ app.{{{expressMethod}}}('/api/{{{serverAlias}}}/{{{functionName}}}', [{{{middlew
         const args = {{#if isGet}}req.query ?? {}{{else}}{{#if hasBinaryParams}}decode(req.body) as Record<string, unknown>{{else}}req.body ?? {}{{/if}}{{/if}}
 
         {{{missingParamsBlock}}}
+    {{#each params}}{{#if primitiveType}}
+        if (typeof args.{{{name}}} !== '{{{primitiveType}}}') {
+            res.status(400).json({ error: 'Invalid param type' })
+            return
+        }
+{{/if}}{{/each}}
 
         const result = await Promise.resolve({{{functionCall}}})
         await writeLog('INFO', 'Request handled successfully', { method: req.method, path: req.path })
@@ -18,6 +24,6 @@ app.{{{expressMethod}}}('/api/{{{serverAlias}}}/{{{functionName}}}', [{{{middlew
         const statusCode = error instanceof Error ? errorStatusCodes[error.constructor.name] : undefined
         const httpStatus = typeof statusCode === 'number' ? statusCode : 500
         await writeLog('ERROR', 'Route execution failed', { method: req.method, path: req.path, error: errorMessage })
-        res.status(httpStatus).json({ error: errorMessage })
+        res.status(httpStatus).json({ error: 'Request failed' })
     }
 })

@@ -75,6 +75,13 @@ function mapRateLimitConfigToExpressOptions(rateLimitConfig) {
 function createExpressRouteBody(routeStub, generatorConfig) {
     try {
         const paramNames = routeStub.params.map((param) => param.name)
+        const params = routeStub.params.map((param) => ({
+            name: param.name,
+            type: param.type,
+            primitiveType: ['string', 'number', 'boolean', 'bigint'].includes(param.type)
+                ? param.type
+                : undefined
+        }))
         const functionCall = `${routeStub.serverNamespace}.${routeStub.functionName}(${paramNames.map((name) => `args.${name}`).join(', ')})`
         const expressMethod = routeStub.httpMethod.toLowerCase()
         const isGet = routeStub.httpMethod === 'GET'
@@ -156,7 +163,7 @@ function createExpressRouteBody(routeStub, generatorConfig) {
             functionCall,
             middlewaresArrayCode,
             preflightCorsMiddlewareCode,
-            paramNames: paramNames.length > 0
+            params
         })
     } catch (error) {
         throw new Error(
