@@ -89,3 +89,29 @@ btn7.addEventListener('click', async () => {
         alert(`Error: ${error.message}`)
     }
 })
+
+const btn8 = document.getElementById('btn8')
+
+btn8.addEventListener('click', async () => {
+    const token = prompt('Enter your token:')
+
+    if (!token) {
+        alert('Token is required')
+        return
+    }
+
+    const name = prompt('Enter the name:')
+    
+    if (!name) {
+        alert('Name is required')
+        return
+    }
+
+    try {
+        const result = await myServer.withAuthHeader(token, name)
+        alert(`With Auth Header Result: ${result}`)
+    } catch (error) {
+        console.error('With Auth Header error:', error)
+        alert(`Error: ${error.message}`)
+    }
+})

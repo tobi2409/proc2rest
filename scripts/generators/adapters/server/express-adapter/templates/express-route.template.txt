@@ -6,9 +6,11 @@ app.options('/api/{{{serverAlias}}}/{{{functionName}}}', [{{{preflightCorsMiddle
 {{/if}}
 app.{{{expressMethod}}}('/api/{{{serverAlias}}}/{{{functionName}}}', [{{{middlewaresArrayCode}}}], async (req: Request, res: Response) => {
     try {
+        {{{missingAuthorizationParamsBlock}}}
+        
         const args = {{#if isGet}}req.query ?? {}{{else}}{{#if hasBinaryParams}}decode(req.body) as Record<string, unknown>{{else}}req.body ?? {}{{/if}}{{/if}}
 
-    {{#if isGet}}{{#each params}}{{#if primitiveType}}
+    {{#if isGet}}{{#each normalParams}}{{#if primitiveType}}
         if ('{{{name}}}' in args) {
             {{#if isNumber}}args.{{{name}}} = Number(args.{{{name}}}){{/if}}{{#if isBoolean}}if (args.{{{name}}} === 'true') args.{{{name}}} = true
             if (args.{{{name}}} === 'false') args.{{{name}}} = false{{/if}}{{#if isBigInt}}try { args.{{{name}}} = BigInt(args.{{{name}}}) } catch {}{{/if}}
@@ -16,7 +18,8 @@ app.{{{expressMethod}}}('/api/{{{serverAlias}}}/{{{functionName}}}', [{{{middlew
     {{/if}}{{/each}}{{/if}}
 
         {{{missingParamsBlock}}}
-    {{#each params}}{{#if primitiveType}}
+        
+    {{#each normalParams}}{{#if primitiveType}}
         if ('{{{name}}}' in args && (typeof args.{{{name}}} !== '{{{primitiveType}}}'{{#if isNumber}} || !Number.isFinite(args.{{{name}}}){{/if}})) {
             await writeLog('WARN', 'Invalid parameter type', { method: req.method, path: req.path, parameter: '{{{name}}}', expectedType: '{{{primitiveType}}}', actualType: typeof args.{{{name}}} })
             res.status(400).json({ error: 'Invalid param type' })

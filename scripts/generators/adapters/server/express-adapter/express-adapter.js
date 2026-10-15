@@ -32,6 +32,20 @@ const missingParamsTemplateSource = fs.readFileSync(
 )
 const missingParamsTemplate = Handlebars.compile(missingParamsTemplateSource)
 
+const missingAuthorizationParamsTemplatePath = path.resolve(
+    __dirname,
+    'templates/missing-authorization-params.template.txt'
+)
+
+const missingAuthorizationParamsTemplateSource = fs.readFileSync(
+    missingAuthorizationParamsTemplatePath,
+    'utf8'
+)
+
+const missingAuthorizationParamsTemplate = Handlebars.compile(
+    missingAuthorizationParamsTemplateSource
+)
+
 // Mapping because Express uses different option names than the generator config
 function mapCorsConfigToExpressOptions(corsConfig) {
     // corsConfig === null -> CORS is disabled
@@ -81,7 +95,7 @@ function createExpressRouteBody(routeStub, generatorConfig) {
             assertValidIdentifier(middleware, 'middleware name')
         }
 
-        const params = routeStub.params.map((param) => ({
+        const normalParams = routeStub.normalParams.map((param) => ({
             name: param.name,
             type: param.type,
             primitiveType: ['string', 'number', 'boolean', 'bigint'].includes(param.type)
@@ -92,7 +106,22 @@ function createExpressRouteBody(routeStub, generatorConfig) {
             isBigInt: param.type === 'bigint',
             isOptional: param.isOptional
         }))
-            const functionCall = `${routeStub.serverNamespace}.${routeStub.functionName}(${params.map((param, index) => `args.${param.name} as Parameters<typeof ${routeStub.serverNamespace}.${routeStub.functionName}>[${index}]`).join(', ')})`
+
+        const authorizationParamNames = routeStub.authorizationParamNames ?? []
+
+        // Authorization Params sind als erstes im Funktionsaufruf
+        const functionArguments = [
+            ...authorizationParamNames.map(
+                (parameterName, index) =>
+                    `authorizationArgs.${parameterName} as Parameters<typeof ${routeStub.serverNamespace}.${routeStub.functionName}>[${index}]`
+            ),
+            ...normalParams.map(
+                (param, index) =>
+                    `args.${param.name} as Parameters<typeof ${routeStub.serverNamespace}.${routeStub.functionName}>[${authorizationParamNames.length + index}]`
+            )
+        ]
+
+        const functionCall = `${routeStub.serverNamespace}.${routeStub.functionName}(${functionArguments.join(', ')})`
         const expressMethod = routeStub.httpMethod.toLowerCase()
         const isGet = routeStub.httpMethod === 'GET'
         const middlewareItems = []
@@ -154,14 +183,23 @@ function createExpressRouteBody(routeStub, generatorConfig) {
         const middlewaresArrayCode = middlewareItems.join(', ')
 
         const missingParamsBlock =
-            params.some((param) => !param.isOptional)
+            normalParams.some((param) => !param.isOptional)
                 ? missingParamsTemplate({
-                      paramList: params
+                      paramList: normalParams
                           .filter((param) => !param.isOptional)
                           .map((param) => `'${param.name}'`)
                           .join(', ')
                   })
                 : ''
+
+        const missingAuthorizationParamsBlock =
+                authorizationParamNames.length > 0
+                        ? missingAuthorizationParamsTemplate({
+                                paramList: authorizationParamNames
+                                        .map((parameterName) => `'${parameterName}'`)
+                                        .join(', ')
+                            })
+                        : ''
 
         return routeTemplate({
             expressMethod,
@@ -170,11 +208,12 @@ function createExpressRouteBody(routeStub, generatorConfig) {
             isGet,
             hasBinaryParams: routeStub.hasBinaryParams,
             returnIsBinary: routeStub.returnIsBinary,
+            missingAuthorizationParamsBlock,
             missingParamsBlock,
             functionCall,
             middlewaresArrayCode,
             preflightCorsMiddlewareCode,
-            params
+            normalParams
         })
     } catch (error) {
         throw new Error(

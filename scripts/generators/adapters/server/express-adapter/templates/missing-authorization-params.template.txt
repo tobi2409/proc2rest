@@ -1,0 +1,23 @@
+let parsedAuthorizationArgs: unknown
+
+try {
+    parsedAuthorizationArgs = JSON.parse(req.headers.authorization ?? '{}')
+} catch {
+    res.status(400).json({ error: 'Invalid Authorization header' })
+    return
+}
+
+if (typeof parsedAuthorizationArgs !== 'object' || parsedAuthorizationArgs === null || Array.isArray(parsedAuthorizationArgs)) {
+    res.status(400).json({ error: 'Invalid Authorization header' })
+    return
+}
+
+const authorizationArgs = parsedAuthorizationArgs as Record<string, unknown>
+
+const missingAuthorizationParams = [{{{paramList}}}].filter((name) => !(name in authorizationArgs))
+
+if (missingAuthorizationParams.length > 0) {
+    await writeLog('WARN', 'Missing authorization params', { method: req.method, path: req.path, missingAuthorizationParams })
+    res.status(400).json({ error: 'Missing authorization params', missingAuthorizationParams })
+    return
+}

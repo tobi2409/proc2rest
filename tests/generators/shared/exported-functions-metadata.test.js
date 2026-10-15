@@ -44,7 +44,8 @@ function notExported() {}
         assert.equal(entry.httpMethod, 'GET')
         assert.deepEqual(entry.middlewares, ['mid1', 'mid2'])
         assert.equal(entry.path, '/api/sample/getPerson')
-        assert.deepEqual(entry.params, [
+        assert.deepEqual(entry.authorizationParamNames, [])
+        assert.deepEqual(entry.normalParams, [
             {
                 name: 'name',
                 type: 'string',
@@ -89,7 +90,7 @@ export function getThing(required: string, optional?: string, withDefault = 'x')
         const [entry] = getExportedFunctionsMetadata(appRoot)
 
         assert.deepEqual(
-            entry.params.map((param) => param.isOptional),
+            entry.normalParams.map((param) => param.isOptional),
             [false, true, true]
         )
     } finally {
@@ -133,6 +134,47 @@ export async function createThing(name: string): Promise<string> {
         assert.deepEqual(entry.rateLimitConfig, { maxRequests: 5 })
         assert.equal(entry.sizeLimit, '1mb')
         assert.equal(entry.httpMethod, 'POST')
+    } finally {
+        fs.rmSync(appRoot, { recursive: true, force: true })
+    }
+})
+
+test('separates leading authorization parameters from normal parameters', () => {
+    const appRoot = makeFixture(`
+// @rest
+// @authorizationParams(["token", "tenant"])
+export async function createThing(token: string, tenant: string, name: string): Promise<string> {
+    return token + tenant + name
+}
+`)
+
+    try {
+        const [entry] = getExportedFunctionsMetadata(appRoot)
+
+        assert.deepEqual(entry.authorizationParamNames, ['token', 'tenant'])
+        assert.deepEqual(
+            entry.normalParams.map((param) => param.name),
+            ['name']
+        )
+    } finally {
+        fs.rmSync(appRoot, { recursive: true, force: true })
+    }
+})
+
+test('rejects authorization parameters that are not first in marker order', () => {
+    const appRoot = makeFixture(`
+// @rest
+// @authorizationParams(["token"])
+export async function createThing(name: string, token: string): Promise<string> {
+    return token + name
+}
+`)
+
+    try {
+        assert.throws(
+            () => getExportedFunctionsMetadata(appRoot),
+            /must appear first and in marker order/
+        )
     } finally {
         fs.rmSync(appRoot, { recursive: true, force: true })
     }

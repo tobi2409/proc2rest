@@ -37,19 +37,28 @@ const clientFunctionTemplate = Handlebars.compile(clientFunctionTemplateSource)
 
 export function createFetchClientFunction(routeStub) {
     try {
-        const paramNames = routeStub.params.map((param) => param.name)
-        const signatureParams = paramNames.join(', ')
-        const hasParams = paramNames.length > 0
+        const authorizationParamNames = routeStub.authorizationParamNames ?? []
+        const normalParamNames = routeStub.normalParams.map(
+            (param) => param.name
+        )
+        const signatureParams = [
+            ...authorizationParamNames,
+            ...normalParamNames
+        ].join(', ')
+        const hasAuthorizationParams = authorizationParamNames.length > 0
+        const hasNormalParams = normalParamNames.length > 0
 
         return clientFunctionTemplate({
             functionName: routeStub.functionName,
             signatureParams,
             path: routeStub.path,
             httpMethod: routeStub.httpMethod,
-            hasParams,
+            hasAuthorizationParams,
+            hasNormalParams,
             hasBinaryParams: routeStub.hasBinaryParams,
             returnIsBinary: routeStub.returnIsBinary,
-            paramNames
+            authorizationParamNames,
+            normalParamNames
         })
     } catch (error) {
         throw new Error(

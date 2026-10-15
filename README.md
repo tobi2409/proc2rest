@@ -156,7 +156,18 @@ export function getPerson(name: string): Person {
 export function uploadFile(filename: string, data: Uint8Array): string {
     return `${filename}: ${data.byteLength} bytes`
 }
+
+// @rest
+// @authorizationParams(["token"])
+export function createPerson(token: string, name: string): Person {
+    return { name, age: 30 }
+}
 ```
+
+Parameters named by `@authorizationParams(...)` must appear first in the
+function signature and in the same order as in the marker. Generated clients
+send them as a JSON object in the `Authorization` header; they are not included
+in the query string or request body.
 
 ### 3. Generate Code
 

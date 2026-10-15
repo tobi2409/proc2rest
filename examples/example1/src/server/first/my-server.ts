@@ -98,6 +98,15 @@ export function reverseBytesWithName(
 }
 
 // @rest
+// @authorizationParams(["token"])
+export function withAuthHeader(
+    token: string,
+    name: string
+): string {
+    return `Authorization header for ${name} is ${token}`
+}
+
+// @rest
 // @cors({"allowOrigin": "http://localhost:5000"})
 export function restrictiveCors() {
     return { message: 'This endpoint has restrictive CORS settings' }

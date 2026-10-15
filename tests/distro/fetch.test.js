@@ -27,7 +27,7 @@ test('generates a fetch client file with a function for each @rest server functi
         assert.ok(clientLines.includes('export async function getPerson(name) {'))
         assert.ok(
             clientLines.includes(
-                "return request('/api/myServer/getPerson', 'GET', { name }, 'application/json', 'application/json')"
+                "return request('/api/myServer/getPerson', 'GET', {}, { name }, 'application/json', 'application/json')"
             )
         )
 

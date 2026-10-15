@@ -9,7 +9,8 @@ function makeStub(overrides = {}) {
         serverFile: 'first/my-server.ts',
         hasRestMarker: true,
         httpMethod: 'GET',
-        params: [{ name: 'name', type: 'string', isBinary: false }],
+        authorizationParamNames: [],
+        normalParams: [{ name: 'name', type: 'string', isBinary: false }],
         hasBinaryParams: false,
         hasJsonParams: true,
         mixedParams: false,
@@ -70,7 +71,7 @@ test('adds express.raw middleware and msgpack encoding for binary routes', () =>
                 hasBinaryParams: true,
                 hasJsonParams: false,
                 returnIsBinary: true,
-                params: [{ name: 'data', type: 'Uint8Array', isBinary: true }]
+                normalParams: [{ name: 'data', type: 'Uint8Array', isBinary: true }]
             })
         ]
     })
@@ -109,6 +110,33 @@ test('adds express.json middleware for POST routes', () => {
     )
 })
 
+test('reads authorization params before normal params and calls the function in that order', () => {
+    const content = createExpressRoutesFileContent({
+        generatorConfig: {},
+        importsBlock: '',
+        rawCode: '',
+        exportedFunctionsMetadata: [
+            makeStub({
+                functionName: 'createThing',
+                httpMethod: 'POST',
+                authorizationParamNames: ['token', 'tenant'],
+                normalParams: [
+                    { name: 'name', type: 'string', isOptional: false }
+                ]
+            })
+        ]
+    })
+
+    assert.match(content, /parsedAuthorizationArgs = JSON\.parse\(req\.headers\.authorization/)
+    assert.match(content, /const authorizationArgs = parsedAuthorizationArgs/)
+    assert.match(content, /const missingAuthorizationParams = \['token', 'tenant'\]/)
+    assert.match(
+        content,
+        /myServer\.createThing\(authorizationArgs\.token[^,]+, authorizationArgs\.tenant[^,]+, args\.name/
+    )
+    assert.ok(content.indexOf('const authorizationArgs =') < content.indexOf('const args ='))
+})
+
 test('converts GET number and boolean query parameters before validation', () => {
     const content = createExpressRoutesFileContent({
         generatorConfig: {},
@@ -117,7 +145,7 @@ test('converts GET number and boolean query parameters before validation', () =>
         exportedFunctionsMetadata: [
             makeStub({
                 functionName: 'getCount',
-                params: [
+                normalParams: [
                     { name: 'count', type: 'number', isBinary: false, isOptional: false },
                     { name: 'includeArchived', type: 'boolean', isBinary: false, isOptional: true }
                 ]

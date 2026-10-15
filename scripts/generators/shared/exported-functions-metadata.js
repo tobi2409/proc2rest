@@ -139,6 +139,44 @@ function getSizeLimitFromFunctionComments(fn) {
     }
 }
 
+function getAuthorizationParamNamesFromFunctionComments(fn) {
+    try {
+        const rawAuthorizationParams = getSingleMarkerRawArgument(
+            fn,
+            'authorizationParams'
+        )
+
+        if (rawAuthorizationParams === undefined) {
+            return []
+        }
+
+        const authorizationParamNames = JSON.parse(rawAuthorizationParams)
+
+        if (
+            !Array.isArray(authorizationParamNames) ||
+            authorizationParamNames.some(
+                (parameterName) => typeof parameterName !== 'string'
+            )
+        ) {
+            throw new Error(
+                '@authorizationParams(...) requires an array of parameter names'
+            )
+        }
+
+        if (new Set(authorizationParamNames).size !== authorizationParamNames.length) {
+            throw new Error(
+                '@authorizationParams(...) cannot contain duplicate parameter names'
+            )
+        }
+
+        return authorizationParamNames
+    } catch (error) {
+        throw new Error(
+            `Failed to get authorizationParams from function comments: ${error instanceof Error ? error.message : error}`
+        )
+    }
+}
+
 export function getExportedFunctionsMetadata(appRootPath = getAppRootPath()) {
     try {
         const generatorConfig = getCachedGeneratorConfig(appRootPath)
@@ -181,7 +219,29 @@ export function getExportedFunctionsMetadata(appRootPath = getAppRootPath()) {
                 const functionName = fn.getName() ?? '<anonymous>'
                 const hasRest = hasRestMarker(fn)
                 const returnType = fn.getReturnType().getText(fn)
-                const params = []
+                const authorizationParamNames =
+                    getAuthorizationParamNamesFromFunctionComments(fn)
+                const functionParams = fn.getParameters()
+                const leadingParamNames = functionParams
+                    .slice(0, authorizationParamNames.length)
+                    .map((param) => param.getName())
+
+                if (
+                    authorizationParamNames.some(
+                        (parameterName, index) =>
+                            leadingParamNames[index] !== parameterName
+                    )
+                ) {
+                    throw new Error(
+                        `Authorization parameters of '${functionName}' must appear first and in marker order`
+                    )
+                }
+
+                const authorizationParamNameSet = new Set(
+                    authorizationParamNames
+                )
+                
+                const normalParams = []
                 let hasBinaryParams = false
                 let hasJsonParams = false
                 const middlewares = getMiddlewaresFromFunctionComments(fn)
@@ -195,7 +255,11 @@ export function getExportedFunctionsMetadata(appRootPath = getAppRootPath()) {
                     getRateLimitConfigFromFunctionComments(fn)
                 const sizeLimit = getSizeLimitFromFunctionComments(fn)
 
-                for (const param of fn.getParameters()) {
+                for (const param of functionParams) {
+                    if (authorizationParamNameSet.has(param.getName())) {
+                        continue
+                    }
+
                     const paramType = param.getType().getText(fn)
                     const currentIsBinary = isBinaryType(paramType, binaryTypes)
 
@@ -205,7 +269,7 @@ export function getExportedFunctionsMetadata(appRootPath = getAppRootPath()) {
                         hasJsonParams = true
                     }
 
-                    params.push({
+                    normalParams.push({
                         name: param.getName(),
                         type: paramType,
                         isBinary: currentIsBinary,
@@ -234,7 +298,8 @@ export function getExportedFunctionsMetadata(appRootPath = getAppRootPath()) {
                     hasRestMarker: hasRest,
                     path: `/api/${serverNamespace}/${functionName}`,
                     httpMethod,
-                    params,
+                    authorizationParamNames,
+                    normalParams,
                     hasBinaryParams,
                     hasJsonParams,
                     mixedParams,
