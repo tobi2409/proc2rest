@@ -64,27 +64,70 @@ function getSingleMarkerRawArgument(fn, markerName) {
 
 function getMiddlewaresFromFunctionComments(fn) {
     try {
-        const rawMiddlewareArg = getSingleMarkerRawArgument(fn, 'middleware')
+        const rawMiddlewares = getSingleMarkerRawArgument(fn, 'middlewares')
 
-        // getSingleMarkerRawArgument gibt undefined zurück, sollte kein @middleware(...) Marker vorhanden sein.
-        if (rawMiddlewareArg === undefined) {
+        if (rawMiddlewares === undefined) {
             return []
         }
 
-        return (
-            rawMiddlewareArg
-                .split(',')
-                .map((middlewareName) =>
-                    middlewareName.trim().replace(/^['"]|['"]$/g, '')
-                )
-                // Entferne leere Strings nach trim() und quote-Entfernung
-                .filter((name) => name.length > 0)
-        )
+        const middlewares = JSON.parse(rawMiddlewares)
+
+        if (
+            !Array.isArray(middlewares) ||
+            middlewares.some((middlewareName) => typeof middlewareName !== 'string')
+        ) {
+            throw new Error(
+                '@middlewares(...) requires an array of middleware names'
+            )
+        }
+
+        return middlewares
     } catch (error) {
         throw new Error(
             `Failed to get middlewares from function comments: ${error instanceof Error ? error.message : error}`
         )
     }
+}
+
+function getUrlFromFunctionComments(fn) {
+    try {
+        const rawUrl = getSingleMarkerRawArgument(fn, 'url')
+
+        if (rawUrl === undefined) {
+            return undefined
+        }
+
+        // Parsing enforces the quoted @url("...") syntax and handles JSON escapes correctly.
+        const url = JSON.parse(rawUrl)
+
+        if (typeof url !== 'string' || url.length === 0) {
+            throw new Error('@url(...) requires a non-empty string')
+        }
+
+        return url
+    } catch (error) {
+        throw new Error(
+            `Failed to get url from function comments: ${error instanceof Error ? error.message : error}`
+        )
+    }
+}
+
+function getUrlParamNamesFromFunctionComments(fn) {
+    const url = getUrlFromFunctionComments(fn)
+
+    if (url === undefined) {
+        return []
+    }
+
+    const urlParamNames = [...url.matchAll(/\{([^{}]+)\}/g)].map(
+        (match) => match[1]
+    )
+
+    if (new Set(urlParamNames).size !== urlParamNames.length) {
+        throw new Error('@url(...) cannot contain duplicate parameter names')
+    }
+
+    return urlParamNames
 }
 
 function getCorsConfigFromFunctionComments(fn) {
@@ -221,25 +264,37 @@ export function getExportedFunctionsMetadata(appRootPath = getAppRootPath()) {
                 const returnType = fn.getReturnType().getText(fn)
                 const authorizationParamNames =
                     getAuthorizationParamNamesFromFunctionComments(fn)
+                const url = getUrlFromFunctionComments(fn)
+                const urlParamNames = getUrlParamNamesFromFunctionComments(fn)
                 const functionParams = fn.getParameters()
+                // This reserved prefix contains authorization params followed by URL params, not normal params.
                 const leadingParamNames = functionParams
-                    .slice(0, authorizationParamNames.length)
+                    .slice(
+                        0,
+                        authorizationParamNames.length + urlParamNames.length
+                    )
                     .map((param) => param.getName())
+                const expectedLeadingParamNames = [
+                    ...authorizationParamNames,
+                    ...urlParamNames
+                ]
 
                 if (
-                    authorizationParamNames.some(
+                    expectedLeadingParamNames.some(
                         (parameterName, index) =>
                             leadingParamNames[index] !== parameterName
                     )
                 ) {
                     throw new Error(
-                        `Authorization parameters of '${functionName}' must appear first and in marker order`
+                        `Authorization and URL parameters of '${functionName}' must appear first and in marker order`
                     )
                 }
 
                 const authorizationParamNameSet = new Set(
                     authorizationParamNames
                 )
+                
+                const urlParamNameSet = new Set(urlParamNames)
                 
                 const normalParams = []
                 let hasBinaryParams = false
@@ -256,7 +311,10 @@ export function getExportedFunctionsMetadata(appRootPath = getAppRootPath()) {
                 const sizeLimit = getSizeLimitFromFunctionComments(fn)
 
                 for (const param of functionParams) {
-                    if (authorizationParamNameSet.has(param.getName())) {
+                    if (
+                        authorizationParamNameSet.has(param.getName()) ||
+                        urlParamNameSet.has(param.getName())
+                    ) {
                         continue
                     }
 
@@ -296,9 +354,10 @@ export function getExportedFunctionsMetadata(appRootPath = getAppRootPath()) {
                     serverNamespace,
                     isExported: fn.isExported(),
                     hasRestMarker: hasRest,
-                    path: `/api/${serverNamespace}/${functionName}`,
+                    path: `/api/${serverNamespace}/${url ?? functionName}`,
                     httpMethod,
                     authorizationParamNames,
+                    urlParamNames,
                     normalParams,
                     hasBinaryParams,
                     hasJsonParams,

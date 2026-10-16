@@ -40,7 +40,7 @@ export function mid2(_req: unknown, _res: unknown, next: () => void) {
 }
 
 // @rest
-// @middleware(mid1, mid2)
+// @middlewares(["mid1", "mid2"])
 export async function getPerson(name: string): Promise<Person[]> {
     if (name === 'log-error') {
         await writeLog('ERROR', 'Manual test error triggered in getPerson', {
@@ -104,6 +104,18 @@ export function withAuthHeader(
     name: string
 ): string {
     return `Authorization header for ${name} is ${token}`
+}
+
+// @rest
+// @authorizationParams(["token"])
+// @url("foo/{urlParam}/bar/{urlParam2}")
+export function withAuthHeaderAndUrlParam(
+    token: string,
+    urlParam: string,
+    urlParam2: string,
+    name: string
+): string {
+    return `Authorization header for ${name} is ${token} and URL params are ${urlParam} and ${urlParam2}`
 }
 
 // @rest

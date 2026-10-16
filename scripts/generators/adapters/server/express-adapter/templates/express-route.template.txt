@@ -1,12 +1,13 @@
 {{#if preflightCorsMiddlewareCode}}
-app.options('/api/{{{serverAlias}}}/{{{functionName}}}', [{{{preflightCorsMiddlewareCode}}}], (_req: Request, res: Response) => {
+app.options('{{{routePath}}}', [{{{preflightCorsMiddlewareCode}}}], (_req: Request, res: Response) => {
     res.sendStatus(204)
 })
 
 {{/if}}
-app.{{{expressMethod}}}('/api/{{{serverAlias}}}/{{{functionName}}}', [{{{middlewaresArrayCode}}}], async (req: Request, res: Response) => {
+app.{{{expressMethod}}}('{{{routePath}}}', [{{{middlewaresArrayCode}}}], async (req: Request, res: Response) => {
     try {
         {{{missingAuthorizationParamsBlock}}}
+        {{{missingUrlParamsBlock}}}
         
         const args = {{#if isGet}}req.query ?? {}{{else}}{{#if hasBinaryParams}}decode(req.body) as Record<string, unknown>{{else}}req.body ?? {}{{/if}}{{/if}}
 

@@ -38,14 +38,20 @@ const clientFunctionTemplate = Handlebars.compile(clientFunctionTemplateSource)
 export function createFetchClientFunction(routeStub) {
     try {
         const authorizationParamNames = routeStub.authorizationParamNames ?? []
+        const urlParamNames = routeStub.urlParamNames ?? []
+
         const normalParamNames = routeStub.normalParams.map(
             (param) => param.name
         )
+
         const signatureParams = [
             ...authorizationParamNames,
+            ...urlParamNames,
             ...normalParamNames
         ].join(', ')
+
         const hasAuthorizationParams = authorizationParamNames.length > 0
+        const hasUrlParams = urlParamNames.length > 0
         const hasNormalParams = normalParamNames.length > 0
 
         return clientFunctionTemplate({
@@ -54,10 +60,12 @@ export function createFetchClientFunction(routeStub) {
             path: routeStub.path,
             httpMethod: routeStub.httpMethod,
             hasAuthorizationParams,
+            hasUrlParams,
             hasNormalParams,
             hasBinaryParams: routeStub.hasBinaryParams,
             returnIsBinary: routeStub.returnIsBinary,
             authorizationParamNames,
+            urlParamNames,
             normalParamNames
         })
     } catch (error) {

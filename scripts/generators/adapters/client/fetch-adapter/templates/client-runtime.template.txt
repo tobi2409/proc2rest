@@ -12,7 +12,7 @@ async function getMsgPackModule() {
     return msgPackModulePromise
 }
 
-export async function request(path, method, authenticationParams = {}, params = {}, contentType = 'application/json', accept = 'application/json') {
+export async function request(path, method, authenticationParams = {}, urlParams = {}, params = {}, contentType = 'application/json', accept = 'application/json') {
     const isGet = method === 'GET'
     const isMsgPack = contentType === MSGPACK_CONTENT_TYPE
     const hasAuthenticationParams = Object.keys(authenticationParams).length > 0
@@ -20,9 +20,15 @@ export async function request(path, method, authenticationParams = {}, params = 
     const queryString = new URLSearchParams(
         Object.entries(params ?? {}).filter(([, value]) => value !== undefined).map(([key, value]) => [key, String(value)])
     ).toString()
+
+    const resolvedPath = Object.entries(urlParams).reduce(
+        (currentPath, [name, value]) => currentPath.replaceAll(`{${name}}`, encodeURIComponent(String(value))),
+        path
+    )
+    
     const url = isGet
-        ? `${API_BASE_URL}${path}${queryString ? `?${queryString}` : ''}`
-        : `${API_BASE_URL}${path}`
+        ? `${API_BASE_URL}${resolvedPath}${queryString ? `?${queryString}` : ''}`
+        : `${API_BASE_URL}${resolvedPath}`
 
     const response = await fetch(url, {
         method,

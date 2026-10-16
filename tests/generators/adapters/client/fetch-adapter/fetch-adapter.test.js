@@ -14,6 +14,7 @@ function makeStub(overrides = {}) {
         httpMethod: 'GET',
         path: '/api/myServer/getPerson',
         authorizationParamNames: [],
+        urlParamNames: [],
         normalParams: [{ name: 'name', type: 'string', isBinary: false }],
         hasBinaryParams: false,
         returnIsBinary: false,
@@ -29,7 +30,7 @@ test('generates a client function calling request with the path, method and para
     assert.ok(lines.includes('export async function getPerson(name) {'))
     assert.ok(
         lines.includes(
-            "return request('/api/myServer/getPerson', 'GET', {}, { name }, 'application/json', 'application/json')"
+            "return request('/api/myServer/getPerson', 'GET', {}, {}, { name }, 'application/json', 'application/json')"
         )
     )
 })
@@ -50,7 +51,7 @@ test('uses msgpack content types for binary params and return values', () => {
 
     assert.ok(
         lines.includes(
-            "return request('/api/myServer/reverseBytes', 'POST', {}, { data }, 'application/msgpack', 'application/msgpack')"
+            "return request('/api/myServer/reverseBytes', 'POST', {}, {}, { data }, 'application/msgpack', 'application/msgpack')"
         )
     )
 })
@@ -73,7 +74,33 @@ test('passes authorization params before normal params', () => {
     
     assert.ok(
         lines.includes(
-            "return request('/api/myServer/getPerson', 'POST', { token, tenant }, { name }, 'application/json', 'application/json')"
+            "return request('/api/myServer/getPerson', 'POST', { token, tenant }, {}, { name }, 'application/json', 'application/json')"
+        )
+    )
+})
+
+test('passes URL params after authorization params', () => {
+    const code = createFetchClientFunction(
+        makeStub({
+            functionName: 'getStudiengang',
+            path: '/api/myServer/bereiche/{bereich}/studiengaenge/{studiengang}',
+            authorizationParamNames: ['token'],
+            urlParamNames: ['bereich', 'studiengang'],
+            normalParams: [{ name: 'detail', type: 'boolean' }]
+        })
+    )
+
+    const lines = code.split('\n').map((line) => line.trim())
+
+    assert.ok(
+        lines.includes(
+            'export async function getStudiengang(token, bereich, studiengang, detail) {'
+        )
+    )
+    
+    assert.ok(
+        lines.includes(
+            "return request('/api/myServer/bereiche/{bereich}/studiengaenge/{studiengang}', 'GET', { token }, { bereich, studiengang }, { detail }, 'application/json', 'application/json')"
         )
     )
 })
@@ -107,4 +134,6 @@ test('creates one shared client runtime with request and msgpack loading', () =>
     assert.match(content, /async function getMsgPackModule\(\)/)
     assert.match(content, /export async function request\(/)
     assert.match(content, /Authorization: JSON\.stringify\(authenticationParams\)/)
+    assert.match(content, /currentPath\.replaceAll\(`\{\$\{name\}\}`/)
+    assert.match(content, /encodeURIComponent\(String\(value\)\)/)
 })

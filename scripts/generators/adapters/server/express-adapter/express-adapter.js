@@ -46,6 +46,20 @@ const missingAuthorizationParamsTemplate = Handlebars.compile(
     missingAuthorizationParamsTemplateSource
 )
 
+const missingUrlParamsTemplatePath = path.resolve(
+    __dirname,
+    'templates/missing-url-params.template.txt'
+)
+
+const missingUrlParamsTemplateSource = fs.readFileSync(
+    missingUrlParamsTemplatePath,
+    'utf8'
+)
+
+const missingUrlParamsTemplate = Handlebars.compile(
+    missingUrlParamsTemplateSource
+)
+
 // Mapping because Express uses different option names than the generator config
 function mapCorsConfigToExpressOptions(corsConfig) {
     // corsConfig === null -> CORS is disabled
@@ -108,16 +122,21 @@ function createExpressRouteBody(routeStub, generatorConfig) {
         }))
 
         const authorizationParamNames = routeStub.authorizationParamNames ?? []
+        const urlParamNames = routeStub.urlParamNames ?? []
 
-        // Authorization Params sind als erstes im Funktionsaufruf
+        // Authorization and URL parameters must appear first and in marker order
         const functionArguments = [
             ...authorizationParamNames.map(
                 (parameterName, index) =>
                     `authorizationArgs.${parameterName} as Parameters<typeof ${routeStub.serverNamespace}.${routeStub.functionName}>[${index}]`
             ),
+            ...urlParamNames.map(
+                (parameterName, index) =>
+                    `req.params.${parameterName} as Parameters<typeof ${routeStub.serverNamespace}.${routeStub.functionName}>[${authorizationParamNames.length + index}]`
+            ),
             ...normalParams.map(
                 (param, index) =>
-                    `args.${param.name} as Parameters<typeof ${routeStub.serverNamespace}.${routeStub.functionName}>[${authorizationParamNames.length + index}]`
+                    `args.${param.name} as Parameters<typeof ${routeStub.serverNamespace}.${routeStub.functionName}>[${authorizationParamNames.length + urlParamNames.length + index}]`
             )
         ]
 
@@ -142,6 +161,7 @@ function createExpressRouteBody(routeStub, generatorConfig) {
         const expressRateLimitOptions = mapRateLimitConfigToExpressOptions(
             effectiveRateLimitConfig
         )
+        
         // Browser schicken bei vielen Cross-Origin-POSTs zuerst ein OPTIONS-Preflight.
         // Diese Route braucht dieselben CORS-Header wie die eigentliche Endpoint-Route.
         const preflightCorsMiddlewareCode =
@@ -193,22 +213,36 @@ function createExpressRouteBody(routeStub, generatorConfig) {
                 : ''
 
         const missingAuthorizationParamsBlock =
-                authorizationParamNames.length > 0
-                        ? missingAuthorizationParamsTemplate({
-                                paramList: authorizationParamNames
-                                        .map((parameterName) => `'${parameterName}'`)
-                                        .join(', ')
-                            })
-                        : ''
+            authorizationParamNames.length > 0
+                ? missingAuthorizationParamsTemplate({
+                      paramList: authorizationParamNames
+                          .map((parameterName) => `'${parameterName}'`)
+                          .join(', ')
+                  })
+                : ''
+
+        const missingUrlParamsBlock =
+            urlParamNames.length > 0
+                ? missingUrlParamsTemplate({
+                      paramList: urlParamNames
+                          .map((parameterName) => `'${parameterName}'`)
+                          .join(', ')
+                  })
+                : ''
+
+        const routePath = routeStub.path.replaceAll(
+            /\{([^{}]+)\}/g,
+            ':$1'
+        )
 
         return routeTemplate({
             expressMethod,
-            serverAlias: routeStub.serverNamespace,
-            functionName: routeStub.functionName,
+            routePath,
             isGet,
             hasBinaryParams: routeStub.hasBinaryParams,
             returnIsBinary: routeStub.returnIsBinary,
             missingAuthorizationParamsBlock,
+            missingUrlParamsBlock,
             missingParamsBlock,
             functionCall,
             middlewaresArrayCode,

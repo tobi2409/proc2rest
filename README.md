@@ -152,7 +152,7 @@ export function getPerson(name: string): Person {
 }
 
 // @rest
-// @middleware(auth)
+// @middlewares(["auth"])
 export function uploadFile(filename: string, data: Uint8Array): string {
     return `${filename}: ${data.byteLength} bytes`
 }
@@ -162,12 +162,23 @@ export function uploadFile(filename: string, data: Uint8Array): string {
 export function createPerson(token: string, name: string): Person {
     return { name, age: 30 }
 }
+
+// @rest
+// @authorizationParams(["token"])
+// @url("people/{personId}")
+export function getPersonById(token: string, personId: string): Person {
+    return { name: personId, age: 30 }
+}
 ```
 
 Parameters named by `@authorizationParams(...)` must appear first in the
 function signature and in the same order as in the marker. Generated clients
 send them as a JSON object in the `Authorization` header; they are not included
 in the query string or request body.
+
+Parameters named by placeholders in `@url(...)` follow the authorization
+parameters in marker order. The generated client substitutes them into the URL,
+and they are not included in the query string or request body.
 
 ### 3. Generate Code
 
@@ -237,14 +248,15 @@ Examples: `getPerson` → `GET`, `addPerson` → `POST`, `deleteUser` → `DELET
 1. Parser (`exported-functions-metadata.js`) uses `ts-morph` to extract function signatures
 2. Only exported functions marked with `@rest` are mapped to routes
 3. HTTP method is resolved from the function name (or custom overrides)
-4. `@middleware(nameA, nameB)` markers are collected per route
-5. Detects parameter types against `binaryTypes` config
-6. Generates appropriate middleware:
+4. `@middlewares(["nameA", "nameB"])` is collected per route
+5. `@url("items/{itemId}")` defines custom paths and URL parameters
+6. Detects parameter types against `binaryTypes` config
+7. Generates appropriate middleware:
 
 - `express.json()` for JSON endpoints
 - `express.raw({ type: 'application/msgpack' })` for binary endpoints
 
-7. Routes are created in `routes.generated.ts`
+8. Routes are created in `routes.generated.ts`
 
 ### Client Generation
 

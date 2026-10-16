@@ -26,7 +26,7 @@ function makeFixture(serverFileContent, configOverrides = {}) {
 test('extracts metadata for exported functions marked with @rest', () => {
     const appRoot = makeFixture(`
 // @rest
-// @middleware(mid1, mid2)
+// @middlewares(["mid1", "mid2"])
 export async function getPerson(name: string): Promise<string> {
     return name
 }
@@ -45,6 +45,7 @@ function notExported() {}
         assert.deepEqual(entry.middlewares, ['mid1', 'mid2'])
         assert.equal(entry.path, '/api/sample/getPerson')
         assert.deepEqual(entry.authorizationParamNames, [])
+        assert.deepEqual(entry.urlParamNames, [])
         assert.deepEqual(entry.normalParams, [
             {
                 name: 'name',
@@ -161,6 +162,74 @@ export async function createThing(token: string, tenant: string, name: string): 
     }
 })
 
+test('extracts URL parameters after authorization parameters', () => {
+    const appRoot = makeFixture(`
+// @rest
+// @authorizationParams(["token"])
+// @url("bereiche/{bereich}/studiengaenge/{studiengang}")
+export async function getStudiengang(token: string, bereich: string, studiengang: string, detail: boolean): Promise<string> {
+    return token + bereich + studiengang + detail
+}
+`)
+
+    try {
+        const [entry] = getExportedFunctionsMetadata(appRoot)
+
+        assert.equal(
+            entry.path,
+            '/api/sample/bereiche/{bereich}/studiengaenge/{studiengang}'
+        )
+
+        assert.deepEqual(entry.authorizationParamNames, ['token'])
+        assert.deepEqual(entry.urlParamNames, ['bereich', 'studiengang'])
+        assert.deepEqual(
+            entry.normalParams.map((param) => param.name),
+            ['detail']
+        )
+    } finally {
+        fs.rmSync(appRoot, { recursive: true, force: true })
+    }
+})
+
+test('rejects URL parameters outside their marker order', () => {
+    const appRoot = makeFixture(`
+// @rest
+// @url("people/{personId}")
+export async function getPerson(detail: string, personId: string): Promise<string> {
+    return detail + personId
+}
+`)
+
+    try {
+        assert.throws(
+            () => getExportedFunctionsMetadata(appRoot),
+            /must appear first and in marker order/
+        )
+    } finally {
+        fs.rmSync(appRoot, { recursive: true, force: true })
+    }
+})
+
+test('rejects authorization parameters after URL parameters', () => {
+    const appRoot = makeFixture(`
+// @rest
+// @authorizationParams(["token"])
+// @url("people/{personId}")
+export async function getPerson(personId: string, token: string, detail: string): Promise<string> {
+    return token + personId + detail
+}
+`)
+
+    try {
+        assert.throws(
+            () => getExportedFunctionsMetadata(appRoot),
+            /must appear first and in marker order/
+        )
+    } finally {
+        fs.rmSync(appRoot, { recursive: true, force: true })
+    }
+})
+
 test('rejects authorization parameters that are not first in marker order', () => {
     const appRoot = makeFixture(`
 // @rest
@@ -183,8 +252,8 @@ export async function createThing(name: string, token: string): Promise<string> 
 test('throws when a marker is duplicated on the same function', () => {
     const appRoot = makeFixture(`
 // @rest
-// @middleware(mid1)
-// @middleware(mid2)
+// @middlewares(["mid1"])
+// @middlewares(["mid2"])
 export async function getThing(): Promise<string> {
     return 'x'
 }
@@ -193,7 +262,7 @@ export async function getThing(): Promise<string> {
     try {
         assert.throws(
             () => getExportedFunctionsMetadata(appRoot),
-            /Only one @middleware\(\.\.\.\) marker is allowed/
+            /Only one @middlewares\(\.\.\.\) marker is allowed/
         )
     } finally {
         fs.rmSync(appRoot, { recursive: true, force: true })

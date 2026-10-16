@@ -9,7 +9,9 @@ function makeStub(overrides = {}) {
         serverFile: 'first/my-server.ts',
         hasRestMarker: true,
         httpMethod: 'GET',
+        path: '/api/myServer/getPerson',
         authorizationParamNames: [],
+        urlParamNames: [],
         normalParams: [{ name: 'name', type: 'string', isBinary: false }],
         hasBinaryParams: false,
         hasJsonParams: true,
@@ -67,6 +69,7 @@ test('adds express.raw middleware and msgpack encoding for binary routes', () =>
         exportedFunctionsMetadata: [
             makeStub({
                 functionName: 'reverseBytes',
+                path: '/api/myServer/reverseBytes',
                 httpMethod: 'POST',
                 hasBinaryParams: true,
                 hasJsonParams: false,
@@ -97,7 +100,11 @@ test('adds express.json middleware for POST routes', () => {
         importsBlock: '',
         rawCode: '',
         exportedFunctionsMetadata: [
-            makeStub({ functionName: 'addPerson', httpMethod: 'POST' })
+            makeStub({
+                functionName: 'addPerson',
+                path: '/api/myServer/addPerson',
+                httpMethod: 'POST'
+            })
         ]
     })
 
@@ -135,6 +142,35 @@ test('reads authorization params before normal params and calls the function in 
         /myServer\.createThing\(authorizationArgs\.token[^,]+, authorizationArgs\.tenant[^,]+, args\.name/
     )
     assert.ok(content.indexOf('const authorizationArgs =') < content.indexOf('const args ='))
+})
+
+test('reads URL params after authorization params and calls the function in that order', () => {
+    const content = createExpressRoutesFileContent({
+        generatorConfig: {},
+        importsBlock: '',
+        rawCode: '',
+        exportedFunctionsMetadata: [
+            makeStub({
+                functionName: 'getStudiengang',
+                path: '/api/myServer/bereiche/{bereich}/studiengaenge/{studiengang}',
+                authorizationParamNames: ['token'],
+                urlParamNames: ['bereich', 'studiengang'],
+                normalParams: [{ name: 'detail', type: 'string', isOptional: false }]
+            })
+        ]
+    })
+
+    assert.match(
+        content,
+        /app\.get\('\/api\/myServer\/bereiche\/:bereich\/studiengaenge\/:studiengang'/
+    )
+
+    assert.match(content, /const missingUrlParams = \['bereich', 'studiengang'\]/)
+    
+    assert.match(
+        content,
+        /myServer\.getStudiengang\(authorizationArgs\.token[^,]+, req\.params\.bereich[^,]+, req\.params\.studiengang[^,]+, args\.detail/
+    )
 })
 
 test('converts GET number and boolean query parameters before validation', () => {

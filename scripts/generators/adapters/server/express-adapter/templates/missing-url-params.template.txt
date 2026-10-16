@@ -1,0 +1,7 @@
+const missingUrlParams = [{{{paramList}}}].filter((name) => !(name in req.params))
+
+if (missingUrlParams.length > 0) {
+    await writeLog('WARN', 'Missing URL params', { method: req.method, path: req.path, missingUrlParams })
+    res.status(400).json({ error: 'Missing URL params', missingUrlParams })
+    return
+}
